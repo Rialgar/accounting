@@ -1,0 +1,119 @@
+html {
+  height: 100%;
+}
+
+body {
+  background-color: #eee;
+  height: 100%;
+}
+
+#navbar {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.form-signin {
+  max-width: 330px;
+  padding: 15px;
+  margin: 0 auto;
+}
+
+.form-signin .form-signin-heading,
+{
+  margin-bottom: 10px;
+}
+
+.form-signin .form-control {
+  position: relative;
+  font-size: 16px;
+  height: auto;
+  padding: 10px;
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+}
+
+.form-signin .form-control:focus {
+  z-index: 2;
+}
+
+.form-signin input[type="text"] {
+  margin-bottom: -1px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.form-signin input[type="password"] {
+  margin-bottom: 10px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+#loadingIndicator {
+  margin-top: 50px;
+  width: 200px;
+}
+
+.navbar-static-top {
+  margin-bottom: 19px;
+}
+
+#tables {
+  padding:0;
+  height: 100%;
+}
+
+#tables_nav {
+  position: relative;
+  background-color: white;
+  width: 200px;
+  float: left;
+  height: 100%;
+}
+
+#tables_nav>.list-group {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34px;
+  bottom: 0;
+  overflow-y: auto;
+
+  margin-bottom: 0;
+}
+
+#tables_nav>.btn-group {
+  width: 100%;
+}
+
+#tables_nav>.btn-group>button {
+  width: 100%;
+}
+
+#tables_content {
+  background-color: white;
+  width: calc(100% - 200px);
+  float: right;
+  height: 100%;
+  overflow: auto;
+}
+
+#tables_content>table {
+  margin-bottom: 0;
+}
+
+#tables_content>table>tbody>tr>td {
+  min-height: 1em;
+}
+
+#wrapper {
+  margin-top: -51px;
+  padding-top: 51px;
+  height: 100%;
+  margin-bottom: -35px;
+  padding-bottom: 35px;
+}
+
+#footer {
+  height: 35px;
+}

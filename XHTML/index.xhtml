@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-16" standalone="yes"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	<head>
+		<title>Rialgar.de Bookkeeping</title>
+		<meta name="author" content="Rialgar"/>		
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<!-- Bootstrap -->
+		<link href="libs/Bootstrap/css/bootstrap.min.css" rel="stylesheet"/>
+		<link href="libs/Bootstrap/css/bootstrap-theme.min.css" rel="stylesheet"/>
+		<link href="libs/jquery-ui-1.10.3.custom/css/ui-lightness/jquery-ui-1.10.3.custom.min.css" rel="stylesheet"/>
+
+		<link href="style.css" rel="stylesheet"/>
+
+
+		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+		<script type="application/javascript" src="jquery-1.10.2.min.js"></script>
+		<!-- Bootstrap's JavaScript -->
+		<script type="application/javascript" src="libs/Bootstrap/js/bootstrap.min.js"></script>
+		<script type="application/javascript" src="libs/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js"></script>
+
+
+		<script type="application/javascript" src="sjcl.js"/>
+		<script type="application/javascript" src="ajax.js"/>
+		<script type="application/javascript" src="srp.js"/>
+
+		<script type="application/javascript" src="ui.js"/>
+	</head>
+	<body>
+		<div class="navbar navbar-inverse navbar-static-top" id="navbar">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="#">Accounting</a>
+				</div>
+				<div class="navbar-collapse collapse">
+					<ul class="nav navbar-nav">
+						<li class="active modeButton" id="mode_tables"><a href="#tables">Tables</a></li>
+						<li class="modeButton" id="mode_stats"><a href="#stats">Statistics</a></li>
+					</ul>
+					<ul class="nav navbar-nav navbar-right">
+						<li class="active"><a href="#">Light</a></li>
+						<li><a href="#">Dark</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+
+		<div id="wrapper">
+
+			<div class="container" id="signin">
+
+				<form class="form-signin">
+					<h2 class="form-signin-heading">Please sign in</h2>
+					<input type="text" class="form-control" placeholder="Username" autofocus="autofocus" id="username"/>
+					<input type="password" class="form-control" placeholder="Password" id="password"/>
+					<button class="btn btn-lg btn-primary btn-block" id="signinButton">Sign in</button>
+				</form>
+
+				</div>
+				
+				<div class="container" id="loadingIndicator" style="display: none">
+				<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 400 400" width="200px" height="200px">
+					<g >
+						<path fill="black" d="
+							M 86.8629150101524 86.86291501015239
+							L 139.89592359914346 139.89592359914346
+							A 85 85 0 0 1 285 200
+							L 245 200
+							L 322.5 275
+							L 400 200
+							L 360 200
+							A 160 160 0 0 0 86.8629150101524 86.86291501015239">
+						</path>
+						<path fill="black" d="
+							M 313.1370849898476 313.1370849898476
+							L 260.10407640085657 260.1040764008565
+							A 85 85 0 0 1 115 200.00000000000003
+							L 155 200
+							L 77.49999999999999 125.00000000000003
+							L 0 200.00000000000003
+							L 40 200.00000000000003
+							A 160 160 0 0 0 313.1370849898476 313.1370849898476">
+						</path>
+						<animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0 200 200" to="360 200 200" begin="0s" dur="2s" repeatCount="indefinite" />
+					</g>
+				</svg>
+			</div>
+
+			<div class="container" id="tables" style="display:none">
+				<div id = "tables_nav">
+					<div class="btn-group">
+						<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+							Add Filter <span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu" role="menu">
+							<li><a href="#">Date</a></li>
+							<li><a href="#">Category</a></li>
+							<li><a href="#">Amount</a></li>
+							<li><a href="#">Name</a></li>
+						</ul>
+					</div>
+					<div class="list-group">
+						<a href="#" class="list-group-item">
+							Alle
+							<span class="badge">125</span>
+						</a>
+						<a href="#" class="list-group-item">
+							2013
+							<span class="badge">75</span>
+						</a>
+						<a href="#" class="list-group-item">
+							Januar
+							<span class="badge">12</span>
+						</a>
+						<a href="#" class="list-group-item">
+							>= 15€
+							<span class="badge">2</span>
+						</a>
+					</div>
+				</div>
+				<div id ="tables_content">
+					<table class="table table-bordered">
+						<thead>
+							<tr>
+								<th>Date</th>
+								<th>Name</th>
+								<th>Amount</th>
+								<th>Category</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>2013-01-01</td>
+								<td>Miete</td>
+								<td>220,00€</td>
+								<td>Wohnen</td>
+							</tr>
+							<tr>
+								<td>2013-01-02</td>
+								<td>DSL</td>
+								<td>19,00€</td>
+								<td>Internet</td>
+							</tr>
+							<tr class="newRow">
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<div class="container" id="stats" style="display:none">
+				Not implemented, yet.
+			</div>
+
+		</div>
+		<div id="footer">
+			<div class="container">
+				<p class="text-muted credit pull-right"> made by <a href="rialgar.de">Rialgar</a> </p>
+			</div>
+		</div>
+	</body>
+</html>
