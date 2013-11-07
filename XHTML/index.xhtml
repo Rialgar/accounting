@@ -2,14 +2,13 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 	<head>
-		<title>Rialgar.de Bookkeeping</title>
+		<title>Rialgar.de Accounting</title>
 		<meta name="author" content="Rialgar"/>		
 
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 		<!-- Bootstrap -->
 		<link href="libs/Bootstrap/css/bootstrap.min.css" rel="stylesheet"/>
 		<link href="libs/Bootstrap/css/bootstrap-theme.min.css" rel="stylesheet"/>
-		<link href="libs/jquery-ui-1.10.3.custom/css/ui-lightness/jquery-ui-1.10.3.custom.min.css" rel="stylesheet"/>
 
 		<link href="style.css" rel="stylesheet"/>
 
@@ -18,7 +17,6 @@
 		<script type="application/javascript" src="jquery-1.10.2.min.js"></script>
 		<!-- Bootstrap's JavaScript -->
 		<script type="application/javascript" src="libs/Bootstrap/js/bootstrap.min.js"></script>
-		<script type="application/javascript" src="libs/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js"></script>
 
 
 		<script type="application/javascript" src="sjcl.js"/>
@@ -130,28 +128,16 @@
 							<tr>
 								<th>Date</th>
 								<th>Name</th>
-								<th>Amount</th>
+								<th>Price</th>
 								<th>Category</th>
 							</tr>
 						</thead>
-						<tbody>
-							<tr>
-								<td>2013-01-01</td>
-								<td>Miete</td>
-								<td>220,00€</td>
-								<td>Wohnen</td>
-							</tr>
-							<tr>
-								<td>2013-01-02</td>
-								<td>DSL</td>
-								<td>19,00€</td>
-								<td>Internet</td>
-							</tr>
-							<tr class="newRow">
-								<td></td>
-								<td></td>
-								<td></td>
-								<td></td>
+						<tbody id="data">
+							<tr class="newRow" id="data_new">
+								<td contenteditable="true" class="date"></td>
+								<td contenteditable="true" class="name"></td>
+								<td contenteditable="true" class="price"></td>
+								<td contenteditable="true" class="category"></td>
 							</tr>
 						</tbody>
 					</table>

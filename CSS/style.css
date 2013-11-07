@@ -98,12 +98,8 @@ body {
   overflow: auto;
 }
 
-#tables_content>table {
-  margin-bottom: 0;
-}
-
-#tables_content>table>tbody>tr>td {
-  min-height: 1em;
+#tables_content td, #tables_content th{
+  width: 25%;
 }
 
 #wrapper {
