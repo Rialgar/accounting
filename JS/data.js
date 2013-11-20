@@ -5,19 +5,24 @@ window.addEventListener("load", function(){
 	var chunks = [];
 
 	var index = {
-		maxId: 0,
+		maxId: -1,
 		names: [],
 		categories: [],
 		chunks: []
 	};
 
-	var chunkSize = 500;
-	var entrySize = {
+	var chunkSizes = [500];
+	var fields = [["date", "name", "price", "category"]]; //unused until now, might be usefull for backwards compatibility later
+	var entrySizes = [{
 		date: 8, //2013111 (2013-11-11)
 		name: 3, //Integer id
 		price: 6, //005000 (50.00€)
-		category: 3 //Integer id
-	}
+		category: 3, //Integer id
+		field: 20, //Sum of the above (fields might be added)
+		chunkId: 5 //Integer id
+	}];
+
+	var fileVersion = 0;
 
 	function pad(number, width, padString) {
 		padString = padString || '0';
@@ -31,6 +36,7 @@ window.addEventListener("load", function(){
 	}
 
 	function dataToString(data){
+		var entrySize = entrySizes[fileVersion];
 		var out = "";
 		
 		var year = data.date.getFullYear().toString();
@@ -48,29 +54,29 @@ window.addEventListener("load", function(){
 		if(name < 0){
 			name = "-01";
 		} else {
-			name = pad(name, 3);
+			name = pad(name, entrySize.name);
 		}
 		out += name;
 
 		var price = data.price*100;
-		price = price.toString();
-		while(price.length < entrySize.price){
-			price = "0" + price;
-		}
+		price = pad(price, entrySize.price);
 		out += price;
 
 		var category = data.category;
 		if(category < 0){
 			category = "-01";
 		} else {
-			category = pad(category, 3);
+			category = pad(category, entrySize.category);
 		}
 		out += category;
 
 		return out;
 	}
 
-	function stringToData(string){
+	function stringToData(string, version){
+		version = version || fileVersion;
+		var entrySize = entrySizes[version];
+
 		var p = 0;
 		var dateString = string.substr(p, entrySize.date);
 		p += entrySize.date;
@@ -107,12 +113,33 @@ window.addEventListener("load", function(){
 		}
 	}
 
-	function storeChunk(chunk){
+	function storeChunk(id){
+		var chunk = chunks[id];
+		var chunkSize = chunkSizes[fileVersion];
+		var entrySize = entrySizes[fileVersion];
 		//TODO encrypt chunk and send it to server, callback for response?
 		//stringify here, encrypt and send in extra module
 		var str = "";
 
-		console.log(chunk);
+		str += pad(fileVersion, 3); //size of version field cannot be changed
+
+		str += pad(id, entrySize.chunkId);
+
+		for(var i = 0; i<chunk.length; i++){
+			str += dataToString(chunk[i]);
+		}
+
+		if(chunk.length < chunkSize){
+			str += new Array(entrySize.field+1).join(0);
+
+			for(var i = chunk.length+1; i < chunkSize; i++){
+				for(var j = 0; j < entrySize.field; j++){
+					str += Math.floor(Math.random()*10).toString().substring(0,1);
+				}
+			}
+		}
+
+		console.log(str);
 		indexChanged = false;
 	}
 
@@ -216,6 +243,8 @@ window.addEventListener("load", function(){
 	}
 
 	Data.storeData = function(id, data){
+		var chunkSize = chunkSizes[fileVersion];
+
 		if(id > index.maxId){
 			if(id != index.maxId+1){
 				return false;
@@ -278,7 +307,7 @@ window.addEventListener("load", function(){
 		}
 
 		storeIndex();
-		storeChunk(chunks[i]);
+		storeChunk(i);
 	}
 
 	Data.retrieveData = function(filters){
