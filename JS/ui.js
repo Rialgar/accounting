@@ -80,9 +80,6 @@ window.addEventListener("load", function(){
 		document.getElementById("data").appendChild(tr);
 	}
 
-	var maxId = 0;
-	var names = [];
-	var categories = [];
 	var data = {};
 
 	function show(id){
@@ -90,26 +87,25 @@ window.addEventListener("load", function(){
 		if(row && data[id]){
 			var tds = row.getElementsByTagName("td");
 			tds[0].textContent = data[id].date.getFullYear() + "-" + (data[id].date.getMonth()+1) + "-" + data[id].date.getDate();
-			tds[1].textContent = data[id].name >= 0 ? names[data[id].name] : "";
+			tds[1].textContent = data[id].name;
 			tds[2].textContent = data[id].price.toFixed(2) + "€";
-			tds[3].textContent = data[id].category >= 0 ? categories[data[id].category] : "";
+			tds[3].textContent = data[id].category;
 		}
 	}
 
-	function saveEdit(){
+	function saveEdit(evt){
 		var id = this.parentElement.getAttribute("id").substring(5);
 		var field = this.getAttribute("class");
 		var value = this.textContent;
 
 		if(id == "new"){
-			maxId++;
-			id = maxId;
+			id = Data.maxId+1;
 			var date = new Date();
 			data[id] = {
 				date: date,
-				name: -1,
+				name: "",
 				price: 0,
-				category: -1
+				category: ""
 			}
 			this.parentElement.setAttribute("id", "data_"+id);
 			createNewRow();
@@ -125,23 +121,15 @@ window.addEventListener("load", function(){
 			if(!isNaN(date.valueOf())){
 				data[id].date = date;
 			}
-			console.log(date);
 		} else if(field == "name") {
-			var index = names.indexOf(value)
-			if( index < 0 && value != ""){
-				index = names.push(value)-1;
-			}
-			data[id].name = index;
+			data[id].name = value;
 		} else if(field == "price") {
 			data[id].price = parseFloat(value);
 		} else if(field == "category") {
-			var index = categories.indexOf(value)
-			if( index < 0 && value != ""){
-				index = categories.push(value)-1;
-			}
-			data[id].category = index;
+			data[id].category = value;
 		}
 		show(id);
+		Data.storeData(id, data[id]);
 	}
 
 	function selectAll(){
@@ -151,5 +139,9 @@ window.addEventListener("load", function(){
 
 	$("#data td").on("blur", saveEdit);
 	$("#data td").on("focus", selectAll);
+
+	window.ui_debug={
+		data: data
+	}
 
 });

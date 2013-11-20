@@ -4,7 +4,7 @@ var http = require("http"),
     SRP = require("./SRP");
 
 var types = {
-	XHTML: "application/XHTML+XML; charset=utf-8",
+	XHTML: "application/xhtml+xml; charset=utf-8",
 	JS: "application/javascript; charset=utf-8",
 	CSS: "text/css; charset=utf-8",
 	EOT: "application/vnd.ms-fontobject",
