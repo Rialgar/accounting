@@ -5,6 +5,7 @@ window.addEventListener("load", function(){
 	var chunks = [];
 
 	var index = {
+		version: 0,
 		maxId: -1,
 		names: [],
 		categories: [],
@@ -35,20 +36,26 @@ window.addEventListener("load", function(){
 		);
 	}
 
-	function dataToString(data){
-		var entrySize = entrySizes[fileVersion];
+	function dateToString(date){
 		var out = "";
 		
-		var year = data.date.getFullYear().toString();
+		var year = date.getFullYear().toString();
 		out += year;
 
-		var month = data.date.getMonth();
+		var month = date.getMonth();
 		month = pad(month, 2);
 		out += month;
 
-		var day = data.date.getDate();
+		var day = date.getDate();
 		day = pad(day,2);
 		out += day;
+
+		return out;
+	}
+
+	function dataToString(data){
+		var entrySize = entrySizes[fileVersion];
+		var out = dateToString(data.date);
 
 		var name = data.name;
 		if(name < 0){
@@ -106,9 +113,44 @@ window.addEventListener("load", function(){
 		{
 			//TODO encrypt index and send it to server, callback for response?
 			//stringify here, encrypt and send in extra module
-			var str = "";
+			console.assert(index.version = fileVersion);
 
-			console.log(index);
+			var indexMin = [
+				index.version,
+				index.maxId,
+				index.names,
+				index.categories,
+				[]
+			]
+
+			for (var i = 0; i < index.chunks.length; i++) {
+				var chunk = index.chunks[i];
+
+				var chunkMin = [
+					[parseInt(dateToString(chunk.dateRange.min)), parseInt(dateToString(chunk.dateRange.max))],
+					[chunk.priceRange.min, chunk.priceRange.max],
+					[],
+					[]
+				]
+
+				for(var name in chunk.names){
+					if(chunk.names.hasOwnProperty(name)){
+						chunkMin[2].push(parseInt(name);
+					}
+				}
+
+				for(var category in chunk.categories){
+					if(chunk.categories.hasOwnProperty(category)){
+						chunkMin[3].push(parseInt(category));
+					}
+				}
+
+				indexMin[4].push(chunkMin);
+			};
+
+			var str = JSON.stringify(indexMin);
+
+			console.log(str);
 			indexChanged = false;
 		}
 	}
@@ -117,8 +159,7 @@ window.addEventListener("load", function(){
 		var chunk = chunks[id];
 		var chunkSize = chunkSizes[fileVersion];
 		var entrySize = entrySizes[fileVersion];
-		//TODO encrypt chunk and send it to server, callback for response?
-		//stringify here, encrypt and send in extra module
+
 		var str = "";
 
 		str += pad(fileVersion, 3); //size of version field cannot be changed
@@ -139,6 +180,8 @@ window.addEventListener("load", function(){
 			}
 		}
 
+		//TODO encrypt chunk and send it to server, callback for response?
+		//use extra module for crypto
 		console.log(str);
 		indexChanged = false;
 	}
