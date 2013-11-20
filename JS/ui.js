@@ -79,13 +79,19 @@ window.addEventListener("load", function(){
 		tr.appendChild(td);
 
 		document.getElementById("data").appendChild(tr);
+		return tr;
 	}
 
 	var data = {};
 
 	function show(id){
-		var row = document.getElementById("data_"+id);
-		if(row && data[id]){
+		if(data[id]){
+			var row = document.getElementById("data_"+id);
+			if(!row){
+				row = document.getElementById("data_new"); 
+				row.setAttribute("id", "data_"+id);
+				createNewRow();
+			}
 			var tds = row.getElementsByTagName("td");
 			tds[0].textContent = data[id].date.getFullYear() + "-" + (data[id].date.getMonth()+1) + "-" + data[id].date.getDate();
 			tds[1].textContent = data[id].name;
@@ -141,8 +147,20 @@ window.addEventListener("load", function(){
 	$("#data td").on("blur", saveEdit);
 	$("#data td").on("focus", selectAll);
 
+	Data.initialize(function(){
+		data = Data.retrieveData();
+		for (var i in data) {
+			if(data.hasOwnProperty(i)){
+				show(i);
+			};
+		};
+	});
+
 	window.ui_debug={
-		data: data
-	}
+	};
+
+	window.ui_debug.__defineGetter__("data", function(){
+		return data;
+	})
 
 });

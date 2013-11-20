@@ -54,7 +54,7 @@ window.addEventListener("load", function(){
 		return out;
 	}
 
-	function stringToDate(str)
+	function stringToDate(dateString)
 	{
 		var date = new Date();
 		date.setFullYear(dateString.substring(0,4));
@@ -119,8 +119,6 @@ window.addEventListener("load", function(){
 	function storeIndex(){
 		if(indexChanged)
 		{
-			//TODO encrypt index and send it to server, callback for response?
-			//stringify here, encrypt and send in extra module
 			console.assert(index.version = fileVersion);
 
 			var indexMin = [
@@ -161,9 +159,52 @@ window.addEventListener("load", function(){
 
 			var str = JSON.stringify(indexMin);
 
-			console.log(str);
+			//TODO encrypt index and send it to server, callback for response?
+			//use extra module for crypto
+			localStorage.index = str;
 			indexChanged = false;
 		}
+	}
+
+	function loadIndex(){
+		//TODO load from server and decrypt
+		var str = localStorage.index;
+		if(!str){
+			return;
+		}
+
+		var indexMin = JSON.parse(str);
+		index = {
+			version: indexMin[0],
+			maxId: indexMin[1],
+			names: indexMin[2],
+			categories: indexMin[3],
+			chunks: []
+		}
+		for (var i = 0; i < indexMin[4].length; i++) {
+			var chunkMin = indexMin[4][i];
+			var chunk = {
+				dateRange: {
+					min: stringToDate(chunkMin[0][0].toString()),
+					max: stringToDate(chunkMin[0][1].toString())
+				},
+				priceRange: {
+					min: chunkMin[1][0],
+					max: chunkMin[1][1]
+				},
+				names: {},
+				categories: {}
+			}
+			for (var j = 0; j < chunkMin[2].length; j++) {
+				var name = chunkMin[2][j];
+				chunk.names[name] = true;
+			};
+			for (var j = 0; j < chunkMin[3].length; j++) {
+				var category = chunkMin[3][j];
+				chunk.categories[category] = true;
+			};
+			index.chunks.push(chunk);
+		};
 	}
 
 	function storeChunk(id){
@@ -193,8 +234,55 @@ window.addEventListener("load", function(){
 
 		//TODO encrypt chunk and send it to server, callback for response?
 		//use extra module for crypto
-		console.log(str);
+		localStorage[id] = str;
 		indexChanged = false;
+	}
+
+	function isAllZeros(string){
+		for (var i = 0; i < string.length; i++) {
+			if(string[i] != "0"){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	function loadChunk(id){
+		//TODO load from server and decrypt
+		var str = localStorage[id];
+		if(!str){
+			return;
+		}
+		var version = parseInt(str.substr(0,3));
+		if(version < fileVersion) {
+			//Adaption in case of backwards compatability problems
+		} else if(version > fileVersion) {
+			alert("Client updated, please refresh the page.");
+			return;
+		}
+
+		var entrySize = entrySizes[version];
+		var chunkSize = chunkSizes[version];
+		var storedId = parseInt(str.substr(3, entrySize.chunkId));
+		if(storedId != id){
+			alert("something went wrong, please notify your administrator.");
+		}
+
+		var chunk = [];
+
+		var index = 3+entrySize.chunkId;
+
+		while(index < 3+entrySize.chunkId + chunkSize*entrySize.field)
+		{
+			var entry = str.substr(index, entrySize.field);
+			if(isAllZeros(entry)){
+				break;
+			}else{
+				chunk.push(stringToData(entry));
+			}
+			index += entrySize.field;
+		}
+		chunks[id] = chunk;
 	}
 
 	function rebuildDateIndex(id){
@@ -292,7 +380,7 @@ window.addEventListener("load", function(){
 			date: data.date,
 			name: data.name < 0 ? "" : index.names[data.name],
 			price: data.price,
-			category: data.category < 0 ? "" : index.names[data.category]
+			category: data.category < 0 ? "" : index.categories[data.category]
 		}
 	}
 
@@ -366,17 +454,36 @@ window.addEventListener("load", function(){
 
 	Data.retrieveData = function(filters){
 		//TODO respect filters
-		var out = [];
-		chunks.forEach(function(ea){
-			chunks[ea].forEach(function(data)
-			{
-				out.push(externalizeData(data));
-			})
-		})
+		var out = {};
+		for (var i = 0; i < index.chunks.length; i++) {
+			if(!chunks[i]){
+				loadChunk(i);
+			}
+		};
+		for (var i = 0; i < chunks.length; i++) {
+			for (var j = 0; j < chunks[i].length; j++) {
+				out[i*chunkSizes[fileVersion]+j] = externalizeData(chunks[i][j]);
+			}
+		};
+		return out;
 	}
 
 	Data.__defineGetter__("maxId", function(){
 		return index.maxId;
+	})
+
+	Data.initialize = function(callback){
+		//TODO make asynchronous;
+		loadIndex();
+		callback();
+	}
+
+	Data.debug = {};
+	Data.debug.__defineGetter__("index", function(){
+		return index;
+	});
+	Data.debug.__defineGetter__("chunks", function(){
+		return chunks;
 	})
 
 });
