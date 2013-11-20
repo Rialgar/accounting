@@ -1,3 +1,4 @@
+"use strict"
 window.addEventListener("load", function(){
 
 	window.Data = {};
@@ -53,6 +54,16 @@ window.addEventListener("load", function(){
 		return out;
 	}
 
+	function stringToDate(str)
+	{
+		var date = new Date();
+		date.setFullYear(dateString.substring(0,4));
+		date.setMonth(dateString.substring(4,6));
+		date.setDate(dateString.substring(6,8));
+
+		return date;
+	}
+
 	function dataToString(data){
 		var entrySize = entrySizes[fileVersion];
 		var out = dateToString(data.date);
@@ -93,12 +104,9 @@ window.addEventListener("load", function(){
 		p += entrySize.price;
 		var categoryString = string.substr(p, entrySize.category);
 
-		var date = new Date();
-		date.setFullYear(dateString.substring(0,4));
-		date.setMonth(dateString.substring(4,6));
-		date.setDate(dateString.substring(6,8));
+		var date = stringToDate(dateString);
 
-		return{
+		return {
 			date: date,
 			name: parseInt(nameString),
 			price: parseInt(priceString)/100,
@@ -127,7 +135,10 @@ window.addEventListener("load", function(){
 				var chunk = index.chunks[i];
 
 				var chunkMin = [
-					[parseInt(dateToString(chunk.dateRange.min)), parseInt(dateToString(chunk.dateRange.max))],
+					[
+						parseInt(dateToString(chunk.dateRange.min)),
+						parseInt(dateToString(chunk.dateRange.max))
+					],
 					[chunk.priceRange.min, chunk.priceRange.max],
 					[],
 					[]
@@ -135,7 +146,7 @@ window.addEventListener("load", function(){
 
 				for(var name in chunk.names){
 					if(chunk.names.hasOwnProperty(name)){
-						chunkMin[2].push(parseInt(name);
+						chunkMin[2].push(parseInt(name));
 					}
 				}
 

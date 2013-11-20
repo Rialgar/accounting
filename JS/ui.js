@@ -1,5 +1,6 @@
+"use strict"
 window.addEventListener("load", function(){
-
+	
 	function signin()
 	{
 		$("#signin").hide();
