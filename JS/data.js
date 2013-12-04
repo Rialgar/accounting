@@ -1,30 +1,54 @@
 "use strict"
-window.addEventListener("load", function(){
+
+define(function(){
 
 	window.Data = {};
 
 	var chunks = [];
 
 	var index = {
-		version: 0,
+		version: 1,
 		maxId: -1,
 		names: [],
 		categories: [],
 		chunks: []
 	};
 
-	var chunkSizes = [500];
-	var fields = [["date", "name", "price", "category"]]; //unused until now, might be usefull for backwards compatibility later
-	var entrySizes = [{
-		date: 8, //2013111 (2013-11-11)
-		name: 3, //Integer id
-		price: 6, //005000 (50.00€)
-		category: 3, //Integer id
-		field: 20, //Sum of the above (fields might be added)
-		chunkId: 5 //Integer id
-	}];
+	function getChunkSize(version){
+		if(version == 1){
+			return 500;
+		} else {
+			alert("Something is wrong, please reload");
+			throw new Error("Something is wrong, please reload");
+		}
+	};
 
-	var fileVersion = 0;
+	function getFields(version){ //unused until now, might be usefull for backwards compatibility later
+		if(version == 1){
+			return ["date", "name", "price"]
+		} else {
+			alert("something is wrong, please reload");
+			throw new Error("Something is wrong, please reload");
+		}	
+	};
+
+	function getEntrySize(version){
+		if(version == 1)
+		{
+			return {
+				date: 8, //2013111 (2013-11-11)
+				name: 3, //Integer id
+				price: 6, //005000 (50.00€)
+				category: 3, //Integer id
+				field: 20, //Sum of the above (fields might be added)
+			};
+		} else {
+			alert("something is wrong, please reload");
+			throw new Error("Something is wrong, please reload");
+		}
+	}
+
+	var fileVersion = 1;
 
 	function pad(number, width, padString) {
 		padString = padString || '0';
@@ -65,7 +89,7 @@ window.addEventListener("load", function(){
 	}
 
 	function dataToString(data){
-		var entrySize = entrySizes[fileVersion];
+		var entrySize = getEntrySize(fileVersion);
 		var out = dateToString(data.date);
 
 		var name = data.name;
@@ -93,7 +117,7 @@ window.addEventListener("load", function(){
 
 	function stringToData(string, version){
 		version = version || fileVersion;
-		var entrySize = entrySizes[version];
+		var entrySize = getEntrySize(version);
 
 		var p = 0;
 		var dateString = string.substr(p, entrySize.date);
@@ -105,7 +129,6 @@ window.addEventListener("load", function(){
 		var categoryString = string.substr(p, entrySize.category);
 
 		var date = stringToDate(dateString);
-
 		return {
 			date: date,
 			name: parseInt(nameString),
@@ -119,7 +142,7 @@ window.addEventListener("load", function(){
 	function storeIndex(){
 		if(indexChanged)
 		{
-			console.assert(index.version = fileVersion);
+			console.assert(index.version == fileVersion);
 
 			var indexMin = [
 				index.version,
@@ -133,6 +156,7 @@ window.addEventListener("load", function(){
 				var chunk = index.chunks[i];
 
 				var chunkMin = [
+					chunk.version,
 					[
 						parseInt(dateToString(chunk.dateRange.min)),
 						parseInt(dateToString(chunk.dateRange.max))
@@ -144,13 +168,13 @@ window.addEventListener("load", function(){
 
 				for(var name in chunk.names){
 					if(chunk.names.hasOwnProperty(name)){
-						chunkMin[2].push(parseInt(name));
+						chunkMin[3].push(parseInt(name));
 					}
 				}
 
 				for(var category in chunk.categories){
 					if(chunk.categories.hasOwnProperty(category)){
-						chunkMin[3].push(parseInt(category));
+						chunkMin[4].push(parseInt(category));
 					}
 				}
 
@@ -181,12 +205,19 @@ window.addEventListener("load", function(){
 			categories: indexMin[3],
 			chunks: []
 		}
+
+		if(index.version > fileVersion){
+			alert("Something is wrong, please reload");
+			throw new Error("Something is wrong, please reload");
+		}
+
 		for (var i = 0; i < indexMin[4].length; i++) {
 			var chunkMin = indexMin[4][i];
 			var chunk = {
+				version: chunkMin[0],
 				dateRange: {
-					min: stringToDate(chunkMin[0][0].toString()),
-					max: stringToDate(chunkMin[0][1].toString())
+					min: stringToDate(chunkMin[1][0].toString()),
+					max: stringToDate(chunkMin[1][1].toString())
 				},
 				priceRange: {
 					min: chunkMin[1][0],
@@ -195,12 +226,12 @@ window.addEventListener("load", function(){
 				names: {},
 				categories: {}
 			}
-			for (var j = 0; j < chunkMin[2].length; j++) {
-				var name = chunkMin[2][j];
+			for (var j = 0; j < chunkMin[3].length; j++) {
+				var name = chunkMin[3][j];
 				chunk.names[name] = true;
 			};
-			for (var j = 0; j < chunkMin[3].length; j++) {
-				var category = chunkMin[3][j];
+			for (var j = 0; j < chunkMin[4].length; j++) {
+				var category = chunkMin[4][j];
 				chunk.categories[category] = true;
 			};
 			index.chunks.push(chunk);
@@ -209,14 +240,10 @@ window.addEventListener("load", function(){
 
 	function storeChunk(id){
 		var chunk = chunks[id];
-		var chunkSize = chunkSizes[fileVersion];
-		var entrySize = entrySizes[fileVersion];
+		var chunkSize = getChunkSize(fileVersion);
+		var entrySize = getEntrySize(fileVersion);
 
 		var str = "";
-
-		str += pad(fileVersion, 3); //size of version field cannot be changed
-
-		str += pad(id, entrySize.chunkId);
 
 		for(var i = 0; i<chunk.length; i++){
 			str += dataToString(chunk[i]);
@@ -247,32 +274,21 @@ window.addEventListener("load", function(){
 		return true;
 	}
 
-	function loadChunk(id){
+	function loadChunk(id, version){
 		//TODO load from server and decrypt
 		var str = localStorage[id];
 		if(!str){
 			return;
 		}
-		var version = parseInt(str.substr(0,3));
-		if(version < fileVersion) {
-			//Adaption in case of backwards compatability problems
-		} else if(version > fileVersion) {
-			alert("Client updated, please refresh the page.");
-			return;
-		}
 
-		var entrySize = entrySizes[version];
-		var chunkSize = chunkSizes[version];
-		var storedId = parseInt(str.substr(3, entrySize.chunkId));
-		if(storedId != id){
-			alert("something went wrong, please notify your administrator.");
-		}
+		var entrySize = getEntrySize(version);
+		var chunkSize = getChunkSize(version);
 
 		var chunk = [];
 
-		var index = 3+entrySize.chunkId;
+		var index = 0;
 
-		while(index < 3+entrySize.chunkId + chunkSize*entrySize.field)
+		while(index < chunkSize*entrySize.field)
 		{
 			var entry = str.substr(index, entrySize.field);
 			if(isAllZeros(entry)){
@@ -385,7 +401,7 @@ window.addEventListener("load", function(){
 	}
 
 	Data.storeData = function(id, data){
-		var chunkSize = chunkSizes[fileVersion];
+		var chunkSize = getChunkSize(fileVersion);
 
 		if(id > index.maxId){
 			if(id != index.maxId+1){
@@ -407,7 +423,8 @@ window.addEventListener("load", function(){
 				dateRange: {min: new Date(data.date), max: new Date(data.date)},
 				names: {},
 				priceRange: {min: data.price, max: data.price},
-				categories: {}
+				categories: {},
+				version: fileVersion
 			};
 			indexChanged = true;
 		}else{
@@ -452,20 +469,20 @@ window.addEventListener("load", function(){
 		storeChunk(i);
 	}
 
-	Data.retrieveData = function(filters){
-		//TODO respect filters
+	Data.retrieveData = function(filters, callback){
+		//TODO respect filters, make asynchronous
 		var out = {};
 		for (var i = 0; i < index.chunks.length; i++) {
 			if(!chunks[i]){
-				loadChunk(i);
+				loadChunk(i, index.chunks[i].version || fileVersion);
 			}
 		};
 		for (var i = 0; i < chunks.length; i++) {
 			for (var j = 0; j < chunks[i].length; j++) {
-				out[i*chunkSizes[fileVersion]+j] = externalizeData(chunks[i][j]);
+				out[i*getChunkSize(fileVersion)+j] = externalizeData(chunks[i][j]);
 			}
 		};
-		return out;
+		callback(out);
 	}
 
 	Data.__defineGetter__("maxId", function(){
@@ -485,5 +502,7 @@ window.addEventListener("load", function(){
 	Data.debug.__defineGetter__("chunks", function(){
 		return chunks;
 	})
+
+	return Data;
 
 });

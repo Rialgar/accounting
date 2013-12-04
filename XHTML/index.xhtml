@@ -12,19 +12,7 @@
 
 		<link href="style.css" rel="stylesheet"/>
 
-
-		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-		<script type="application/javascript" src="jquery-1.10.2.min.js"></script>
-		<!-- Bootstrap's JavaScript -->
-		<script type="application/javascript" src="libs/Bootstrap/js/bootstrap.min.js"></script>
-
-
-		<script type="application/javascript" src="sjcl.js"/>
-		<script type="application/javascript" src="ajax.js"/>
-		<script type="application/javascript" src="srp.js"/>
-
-		<script type="application/javascript" src="data.js"/>
-		<script type="application/javascript" src="ui.js"/>
+		<script data-main="ui.js" src="libs/require.js"></script>
 	</head>
 	<body>
 		<div class="navbar navbar-inverse navbar-static-top" id="navbar">
@@ -39,7 +27,7 @@
 				</div>
 				<div class="navbar-collapse collapse">
 					<ul class="nav navbar-nav">
-						<li class="active modeButton" id="mode_tables"><a href="#tables">Tables</a></li>
+						<li class="modeButton" id="mode_tables"><a href="#tables">Tables</a></li>
 						<li class="modeButton" id="mode_stats"><a href="#stats">Statistics</a></li>
 					</ul>
 					<ul class="nav navbar-nav navbar-right">
