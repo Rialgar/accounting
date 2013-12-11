@@ -2,7 +2,7 @@
 
 define(function(){
 
-	window.Data = {};
+	var Data = {};
 
 	var chunks = [];
 
@@ -36,11 +36,11 @@ define(function(){
 		if(version == 1)
 		{
 			return {
-				date: 8, //2013111 (2013-11-11)
+				date: 2, //date.valueOf()/(1000*60*60*24) as binaryString
 				name: 3, //Integer id
 				price: 6, //005000 (50.00€)
 				category: 3, //Integer id
-				field: 20, //Sum of the above (fields might be added)
+				field: 14, //Sum of the above (fields might be added)
 			};
 		} else {
 			alert("something is wrong, please reload");
@@ -64,26 +64,23 @@ define(function(){
 	function dateToString(date){
 		var out = "";
 		
-		var year = date.getFullYear().toString();
-		out += year;
+		var num = Math.floor(date.valueOf()/86400000);
+		var n1 = Math.floor(num/256)%256;
+		var n2 = num%256;
 
-		var month = date.getMonth();
-		month = pad(month, 2);
-		out += month;
-
-		var day = date.getDate();
-		day = pad(day,2);
-		out += day;
+		out += String.fromCharCode(n1);
+		out += String.fromCharCode(n2);
 
 		return out;
 	}
 
 	function stringToDate(dateString)
 	{
-		var date = new Date();
-		date.setFullYear(dateString.substring(0,4));
-		date.setMonth(dateString.substring(4,6));
-		date.setDate(dateString.substring(6,8));
+		var n1 = dateString.charCodeAt(0);
+		var n2 = dateString.charCodeAt(1);
+		var num = n1*256 + n2;
+
+		var date = new Date(num*86400000);
 
 		return date;
 	}
@@ -158,8 +155,8 @@ define(function(){
 				var chunkMin = [
 					chunk.version,
 					[
-						parseInt(dateToString(chunk.dateRange.min)),
-						parseInt(dateToString(chunk.dateRange.max))
+						dateToString(chunk.dateRange.min),
+						dateToString(chunk.dateRange.max)
 					],
 					[chunk.priceRange.min, chunk.priceRange.max],
 					[],
@@ -216,8 +213,8 @@ define(function(){
 			var chunk = {
 				version: chunkMin[0],
 				dateRange: {
-					min: stringToDate(chunkMin[1][0].toString()),
-					max: stringToDate(chunkMin[1][1].toString())
+					min: stringToDate(chunkMin[1][0]),
+					max: stringToDate(chunkMin[1][1])
 				},
 				priceRange: {
 					min: chunkMin[1][0],
