@@ -37,10 +37,10 @@ define(function(){
 		{
 			return {
 				date: 2, //date.valueOf()/(1000*60*60*24) as binaryString
-				name: 3, //Integer id
-				price: 6, //005000 (50.00€)
-				category: 3, //Integer id
-				field: 14, //Sum of the above (fields might be added)
+				name: 2, //Integer id as binary String
+				price: 3, //Price times 100 as binary String
+				category: 2, //Integer id as binary String
+				field: 9, //Sum of the above (fields might be added)
 			};
 		} else {
 			alert("something is wrong, please reload");
@@ -61,26 +61,39 @@ define(function(){
 		);
 	}
 
-	function dateToString(date){
+	function numberToString(number, bits){
+		var n = Math.floor(number);
 		var out = "";
-		
-		var num = Math.floor(date.valueOf()/86400000);
-		var n1 = Math.floor(num/256)%256;
-		var n2 = num%256;
-
-		out += String.fromCharCode(n1);
-		out += String.fromCharCode(n2);
-
+		for(var i=0; i < bits; i++){
+			var bit = n%256;
+			n = Math.floor(n/256);
+			out = String.fromCharCode(bit) + out;
+		}
 		return out;
+	}
+
+	function stringToNumber(string){
+		var n = 0;
+		for (var i = 0; i < string.length; i++) {
+			n *= 256;
+			n += string.charCodeAt(i);
+		};
+		return n;
+	}
+
+	var millisecondsPerDay = 1000*60*60*24;
+
+	function dateToString(date){
+		var num = Math.floor(date.valueOf()/millisecondsPerDay);
+		
+		return numberToString(num, getEntrySize(fileVersion).date);
 	}
 
 	function stringToDate(dateString)
 	{
-		var n1 = dateString.charCodeAt(0);
-		var n2 = dateString.charCodeAt(1);
-		var num = n1*256 + n2;
+		var num = stringToNumber(dateString);
 
-		var date = new Date(num*86400000);
+		var date = new Date(num*millisecondsPerDay);
 
 		return date;
 	}
@@ -90,24 +103,13 @@ define(function(){
 		var out = dateToString(data.date);
 
 		var name = data.name;
-		if(name < 0){
-			name = "-01";
-		} else {
-			name = pad(name, entrySize.name);
-		}
-		out += name;
+		out += numberToString(name+1, getEntrySize(fileVersion).name);
 
 		var price = data.price*100;
-		price = pad(price, entrySize.price);
-		out += price;
+		out += numberToString(price, getEntrySize(fileVersion).price);
 
 		var category = data.category;
-		if(category < 0){
-			category = "-01";
-		} else {
-			category = pad(category, entrySize.category);
-		}
-		out += category;
+		out += numberToString(category+1, getEntrySize(fileVersion).category);
 
 		return out;
 	}
@@ -128,9 +130,9 @@ define(function(){
 		var date = stringToDate(dateString);
 		return {
 			date: date,
-			name: parseInt(nameString),
-			price: parseInt(priceString)/100,
-			category: parseInt(categoryString)
+			name: stringToNumber(nameString)-1,
+			price: stringToNumber(priceString)/100,
+			category: stringToNumber(categoryString)-1
 		}
 	}
 
@@ -251,7 +253,7 @@ define(function(){
 
 			for(var i = chunk.length+1; i < chunkSize; i++){
 				for(var j = 0; j < entrySize.field; j++){
-					str += Math.floor(Math.random()*10).toString().substring(0,1);
+					str += String.fromCharCode(Math.floor(Math.random()*256));
 				}
 			}
 		}
