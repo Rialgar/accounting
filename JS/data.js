@@ -119,7 +119,7 @@ window.addEventListener("load", function(){
 	function storeIndex(){
 		if(indexChanged)
 		{
-			console.assert(index.version = fileVersion);
+			console.assert(index.version == fileVersion);
 
 			var indexMin = [
 				index.version,

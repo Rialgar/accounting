@@ -106,6 +106,9 @@ window.addEventListener("load", function(){
 		var value = this.textContent;
 
 		if(id == "new"){
+			if(value == ""){
+				return;
+			}
 			id = Data.maxId+1;
 			var date = new Date();
 			data[id] = {
