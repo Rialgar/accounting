@@ -112,19 +112,20 @@ require(['libs/domReady', 'data'], function(domReady, Data){
 			var field = this.getAttribute("class");
 			var value = this.textContent;
 
-		if(id == "new"){
-			if(value == ""){
-				return;
+			if(id == "new"){
+				if(value == ""){
+					return;
+				}
+				id = Data.maxId+1;
+				var date = new Date();
+				data[id] = {
+					date: date,
+					name: "",
+					price: 0,
+					category: ""
+				}
 			}
-			id = Data.maxId+1;
-			var date = new Date();
-			data[id] = {
-				date: date,
-				name: "",
-				price: 0,
-				category: ""
-			}
-
+			
 			if(field == "date") {
 				var arr = value.split("-");
 

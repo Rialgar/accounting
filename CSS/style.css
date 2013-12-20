@@ -113,3 +113,11 @@ body {
 #footer {
   height: 35px;
 }
+
+#data tr {
+  height: 2.5em;
+}
+
+#data td {
+  height: 2.5em;
+}
