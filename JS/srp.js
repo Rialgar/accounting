@@ -3,17 +3,17 @@ define(["sjcl"], function(){
 	/**
 	*	Usage example:
 	*		Account creation:
-	*			var ac = new SRP.Account("test", "test", function(){console.log(arguments)});
+	*			var ac = new SRP.Account("foo", "bar", function(){console.log(arguments)});
 	*			//log: [SRP.Account]
 	*			ac.send(function(){console.log(arguments)});
 	*			//log: [SRP.Account, {success: true}]
 	*			
 	*		Login:
-	*			var cl = new SRP.Client("test", function(){console.log(arguments)});
+	*			var cl = new SRP.Client("foo", function(){console.log(arguments)});
 	*			//log: [SRP.Client, "A generated"]
 	*			cl.sendA();
 	*			//log: [SRP.Client, "Password required"]
-	*			cl.setPassword("test");
+	*			cl.setPassword("bar");
 	*			//log: [SRP.Client, "Shared state calculated"]
 	*			cl.sendM1()		
 	*			//log: [SRP.Client, "Authentification successfull"]

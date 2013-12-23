@@ -11,7 +11,28 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 			document.getElementById("signin").style.display = "none";
 			document.getElementById("loadingIndicator").style.display = "block";
 
-			window.setTimeout(signinSuccess, 1234); //Mockup
+			var username = document.getElementById("username").value;
+			var password = document.getElementById("password").value;
+
+			new SRP.Client(username, function(client, message){
+				if (message == "A generated") {
+					delete username;
+					client.sendA();
+				} else if (message == "Password required") {
+					client.setPassword(password);
+					delete password;
+				} else if (message == "Shared state calculated") {
+					client.sendM1();
+				} else if (message == "Authentification successfull") {
+					signinSuccess(client);
+				} else {
+					alert(message);
+					signinFailure(client);
+				}
+			}, function(client, message){
+				alert(message);
+				signinFailure(client);
+			});
 		}
 
 		document.getElementById("signinButton").addEventListener("click", function(evt){
@@ -19,7 +40,12 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 			signin();
 		});
 
-		function signinSuccess(){
+		function signinFailure(srpClient){
+			console.log("Authentification failed: " + srpClient.state);
+			document.getElementById("loadingIndicator").style.display = "none";
+		}
+
+		function signinSuccess(srpClient){
 			console.log("Authentification succesfull");
 			init(function(){
 				document.getElementById("loadingIndicator").style.display = "none";		
@@ -173,7 +199,7 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 			}
 		}
 
-		function init(){
+		function init(callback){
 			var trs = document.getElementById("data").getElementsByTagName("tr");
 
 			for (var i = 0; i < trs.length; i++) {
@@ -193,6 +219,7 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 							show(i);
 						};
 					};
+					callback();
 				});
 			});
 		};
