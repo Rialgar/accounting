@@ -121,3 +121,8 @@ body {
 #data td {
   height: 2.5em;
 }
+
+#data td:hover {
+  height: 2.5em;
+  background-color: gray;
+}

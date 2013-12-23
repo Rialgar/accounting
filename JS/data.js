@@ -11,6 +11,7 @@ define(function(){
 		maxId: -1,
 		names: [],
 		categories: [],
+		categoriesPerName: [],
 		chunks: []
 	};
 
@@ -39,8 +40,7 @@ define(function(){
 				date: 2, //date.valueOf()/(1000*60*60*24) as binaryString
 				name: 2, //Integer id as binary String
 				price: 3, //Price times 100 + 8,388,608 as binary String
-				category: 2, //Integer id as binary String
-				field: 9, //Sum of the above (fields might be added)
+				field: 7, //Sum of the above (fields might be added)
 			};
 		} else {
 			alert("something is wrong, please reload");
@@ -53,14 +53,14 @@ define(function(){
 		{
 			return {
 				maxId: 4,
+				perCategory: 2,
 				chunk: {
 					version: 2,
 					minDate: 2,
 					maxDate: 2,
 					minPrice: 3,
 					maxPrice: 3,
-					perName: 2,
-					perCategory: 2
+					perName: 2
 				}
 			}
 		} else {
@@ -118,9 +118,6 @@ define(function(){
 		var price = data.price*100;
 		out += numberToString(price+8388608, getEntrySize(fileVersion).price);
 
-		var category = data.category;
-		out += numberToString(category+1, getEntrySize(fileVersion).category);
-
 		return out;
 	}
 
@@ -134,15 +131,12 @@ define(function(){
 		var nameString = string.substr(p, entrySize.name);
 		p += entrySize.name;
 		var priceString = string.substr(p, entrySize.price);
-		p += entrySize.price;
-		var categoryString = string.substr(p, entrySize.category);
 
 		var date = stringToDate(dateString);
 		return {
 			date: date,
 			name: stringToNumber(nameString)-1,
 			price: (stringToNumber(priceString)-8388608)/100,
-			category: stringToNumber(categoryString)-1
 		}
 	}
 
@@ -162,6 +156,10 @@ define(function(){
 			str += JSON.stringify(index.names);
 			str += JSON.stringify(index.categories);
 
+			for (var i = 0; i < index.categoriesPerName.length; i++) {
+				str += numberToString(index.categoriesPerName[i]+1, sizes.perCategory);
+			};
+
 			for (var i = 0; i < index.chunks.length; i++) {
 				var chunk = index.chunks[i];
 
@@ -178,14 +176,6 @@ define(function(){
 				}
 
 				str += numberToString(0, sizes.chunk.perName);
-
-				for(var category in chunk.categories){
-					if(chunk.categories.hasOwnProperty(category)){
-						str += numberToString(category+2, sizes.chunk.perCategory);
-					}
-				}
-
-				str += numberToString(0, sizes.chunk.perCategory);
 			};
 
 			//TODO encrypt index and send it to server, callback for response?
@@ -228,6 +218,12 @@ define(function(){
 		index.categories = JSON.parse(str.substring(position,pos2));
 		position = pos2;
 
+		index.categoriesPerName = [];
+		for (var i = index.names.length - 1; i >= 0; i--) {
+			index.categoriesPerName.push(stringToNumber(str.substr(position, sizes.perCategory))-1);
+			position += sizes.perCategory;
+		};
+
 		index.chunks = [];
 		while(position < str.length){
 			var chunk = {};
@@ -255,14 +251,6 @@ define(function(){
 				position += sizes.chunk.perName;
 			}while(name != 0)
 			chunk.names.pop();
-
-			chunk.categories = [];
-			do{
-				var category = stringToNumber(str.substr(position, sizes.chunk.perCategory));
-				chunk.categories.push(category-2);
-				position += sizes.chunk.perName;
-			}while(category != 0)
-			chunk.categories.pop();
 		};		
 	}
 
@@ -381,27 +369,11 @@ define(function(){
 		indexChanged = true;
 	}
 
-	function rebuildCategoryIndex(id){
-		var chunk = chunks[id];
-		var chIndex = index.chunks[id];
-
-		chIndex.categories = {};
-
-		chunk.forEach(function(ea){
-			chIndex.categories[ea.category] = true;
-		});
-		indexChanged = true;
-	}
-
 	function internalizeData(extData){
 		var nameId = index.names.indexOf(extData.name);
 		if(nameId == -1 && extData.name != ""){
 			nameId = index.names.push(extData.name)-1;
-			indexChanged = true;
-		}
-		var categoryId = index.categories.indexOf(extData.category);
-		if(categoryId == -1 && extData.category != ""){
-			categoryId = index.categories.push(extData.category)-1;
+			index.categoriesPerName.push(-1);
 			indexChanged = true;
 		}
 
@@ -414,8 +386,7 @@ define(function(){
 		return {
 			date: date,
 			name: nameId,
-			price: extData.price,
-			category: categoryId
+			price: extData.price
 		}
 	}
 
@@ -423,8 +394,7 @@ define(function(){
 		return {
 			date: data.date,
 			name: data.name < 0 ? "" : index.names[data.name],
-			price: data.price,
-			category: data.category < 0 ? "" : index.categories[data.category]
+			price: data.price
 		}
 	}
 
@@ -451,7 +421,6 @@ define(function(){
 				dateRange: {min: new Date(data.date), max: new Date(data.date)},
 				names: {},
 				priceRange: {min: data.price, max: data.price},
-				categories: {},
 				version: fileVersion
 			};
 			indexChanged = true;
@@ -474,7 +443,6 @@ define(function(){
 		}
 
 		index.chunks[i].names[data.name] = true;
-		index.chunks[i].categories[data.category] = true;
 
 		chunks[i][id-i*500] = data
 
@@ -488,13 +456,36 @@ define(function(){
 			if(prev.price != data.price){
 				rebuildPriceIndex(i);
 			}
-			if(prev.category != data.category){
-				rebuildCategoryIndex(i);
-			}
 		}
 
 		storeIndex();
 		storeChunk(i);
+	}
+
+	Data.getCategoryForName = function(name){
+		var id = index.names.indexOf(name);
+		if(id >= 0){
+			var catId = index.categoriesPerName[id];
+			return catId < 0 ? "" : index.categories[catId];
+		}
+		return "";
+	}
+
+	Data.setCategoryForName = function(name, category){
+		var id = index.names.indexOf(name);
+		if(id >= 0){
+			var prevCatId = index.categoriesPerName[id];
+			var catId = -1;
+			if(category != ""){
+				var catId = index.categories.indexOf(category);
+				if(catId < 0){
+					catId = index.categories.push(category)-1;
+				}
+			}
+			index.categoriesPerName[id] = catId;
+			indexChanged = (prevCatId != catId);
+			storeIndex();
+		}
 	}
 
 	Data.retrieveData = function(filters, callback){
