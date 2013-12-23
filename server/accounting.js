@@ -2,6 +2,7 @@ var http = require("http"),
     fileSystem = require("fs"),
     path = require("path"),
     colors = require('colors'),
+    util = require('util'),
     SRP = require("./SRP");
 
 var types = {
@@ -18,7 +19,7 @@ var serve = function(prefix, file, type, response)
 {
 	var filePath = path.join(__dirname, ".."+prefix+file);
 
-	console.log("serving file: ".green + filePath);
+	util.log("serving file: ".green + filePath);
 
 	fileSystem.stat(filePath, function(error, stat)
 	{
@@ -110,7 +111,7 @@ var handler = function (request, response) {
 		    	}
 		    	catch(e)
 		    	{
-		    		console.error(e.stack);
+		    		util.error(e.stack);
 		    		response.writeHead(505, {
 			        	"Content-Type": "application/json",
 			        	"Content-Length": 0
@@ -136,4 +137,4 @@ var port = 5723;
 var host = "127.0.0.1";
 
 http.createServer(handler).listen(port, host);
-console.log("Accounting".cyan + " http://"+host+":"+port);
+util.log("Accounting".cyan + " http://"+host+":"+port);

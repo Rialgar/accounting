@@ -1,6 +1,8 @@
 var fs = require("fs"),
 	path = require("path"),
 	crypto = require("crypto"),
+	colors = require('colors'),
+	util = require('util'),
 	sjcl = require("./sjcl.js");
 
 //load accounts
@@ -43,13 +45,16 @@ SRP.createAccount = function(message)
 {
 	if(!message.I || !message.s || !message.v)
 	{
+		util.log("Malformed account creation request".red);
 		return {success: false};
 	}
 
 	var I = message.I;
 	
-	if(accounts[I])
+	if(accounts[I]){
+		util.log("Attempted to create existing account: ".red + I);
 		return {success: false, nameUsed: true};
+	}
 
 	var s = message.s;
 	var v = message.v;
@@ -61,6 +66,7 @@ SRP.createAccount = function(message)
 	}
 	catch(e)
 	{
+		util.log("Malformed account creation request for account: ".red + I);
 		return {success: false};
 	}
 
@@ -70,7 +76,7 @@ SRP.createAccount = function(message)
 		v: v
 	};
 
-	console.log("created account " + I);
+	util.log("Created account: ".cyan + I);
 
 	fs.writeFileSync(accountFileName, JSON.stringify(accounts));
 
@@ -89,14 +95,17 @@ SRP.loginU = function(message)
 {
 	if(!message.I || !message.A)
 	{
+		util.log("Malformed loginU request".red);
 		return {success: false};
 	}
 
 	var I = message.I;
 	var A = message.A;
 
-	if(!accounts[I])
-		return {success: false};	
+	if(!accounts[I]){
+		util.log("Nonexising account tried to log in: ".red + I);
+		return {success: false};
+	}
 
 	try {
 		sessions[I] = {
@@ -109,12 +118,14 @@ SRP.loginU = function(message)
 	catch(e)
 	{
 		delete session[I];
+		util.log("Malformed loginU request for account: ".red + I);
 		return {success: false};
 	}
 
 	if(sessions[I].A.mod(SRP.N).equals(new sjcl.bn(0)))
 	{
 		delete session[I];
+		util.log("Attempt to hack account: ".red + I);
 		return {success: false};
 	}
 
@@ -169,6 +180,7 @@ SRP.loginU = function(message)
 	delete u;
 	delete b;
 
+	util.log("Login attempt for account: ".yellow + I);
 	return {
 		success: true,
 		s: accounts[I].s,
@@ -188,6 +200,7 @@ SRP.loginP = function(message)
 {
 	if(!message.I || !message.M1)
 	{
+		util.log("Malformed loginP request".red);
 		return {success: false};
 	}
 
@@ -198,6 +211,7 @@ SRP.loginP = function(message)
 		sessions[I].M1.toString() == "0x"+message.M1)
 	{
 		sessions[I].sate = "authenticated";
+		util.log("Login successfull for Account: ".green + I);
 		return {
 			success: true,
 			M2: sessions[I].M2.toString().substring(2)
@@ -206,6 +220,7 @@ SRP.loginP = function(message)
 
 	else
 	{
+		util.log("Login failed for account: ".red + I);
 		delete sessions[I];
 		return {success: false};
 	}
