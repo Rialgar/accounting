@@ -1,7 +1,4 @@
-"use strict"
-
 define(function(){
-
 	var Data = {};
 
 	var chunks = [];

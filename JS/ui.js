@@ -1,11 +1,10 @@
-"use strict"
 require.config({
   paths: {
     libs: "libs"
   }
 });
 
-require(['libs/domReady', 'data'], function(domReady, Data){
+require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 	domReady(function(){
 		function signin()
 		{
@@ -21,9 +20,11 @@ require(['libs/domReady', 'data'], function(domReady, Data){
 		});
 
 		function signinSuccess(){
-			document.getElementById("loadingIndicator").style.display = "none";		
-			document.getElementById(mode).style.display = "block";
-			init();
+			console.log("Authentification succesfull");
+			init(function(){
+				document.getElementById("loadingIndicator").style.display = "none";		
+				document.getElementById(mode).style.display = "block";
+			});
 		}
 
 		function activate(which){
@@ -205,6 +206,10 @@ require(['libs/domReady', 'data'], function(domReady, Data){
 
 		window.debug.__defineGetter__("Data", function(){
 			return Data;
+		});
+
+		window.debug.__defineGetter__("SRP", function(){
+			return SRP;
 		});
 	});
 });
