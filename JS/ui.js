@@ -4,7 +4,7 @@ require.config({
   }
 });
 
-require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
+require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 	domReady(function(){
 		function signin()
 		{
@@ -13,24 +13,30 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 
 			var username = document.getElementById("username").value;
 			var password = document.getElementById("password").value;
+			var fileKey = "";
 
 			new SRP.Client(username, function(client, message){
 				if (message == "A generated") {
 					delete username;
 					client.sendA();
 				} else if (message == "Password required") {
+					fileKey = sjcl.bn.fromBits(sjcl.misc.pbkdf2(password, client.s.mul(23).toBits()));
 					client.setPassword(password);
 					delete password;
 				} else if (message == "Shared state calculated") {
 					client.sendM1();
 				} else if (message == "Authentification successfull") {
-					signinSuccess(client);
+					signinSuccess(client, fileKey);
 				} else {
 					alert(message);
+					delete password;
+					delete fileKey;
 					signinFailure(client);
 				}
 			}, function(client, message){
 				alert(message);
+				delete password;
+				delete fileKey;
 				signinFailure(client);
 			});
 		}
@@ -45,9 +51,9 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 			document.getElementById("loadingIndicator").style.display = "none";
 		}
 
-		function signinSuccess(srpClient){
+		function signinSuccess(srpClient, fileKey){
 			console.log("Authentification succesfull");
-			init(srpClient, function(){
+			init(srpClient, fileKey, function(){
 				document.getElementById("loadingIndicator").style.display = "none";		
 				document.getElementById(mode).style.display = "block";
 			});
@@ -181,13 +187,11 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 		}
 
 		function changeCategory(){
-			console.log("foo");
 			var id = this.parentElement.getAttribute("id").substring(5);
 			if(id != "new"){
 				var name = data[id].name;
 				var category = this.textContent;
 				category = window.prompt("Set category for " + name, category);
-				console.log(category);
 				if(category != null){
 					Data.setCategoryForName(name, category);
 					for (var i in data) {
@@ -201,7 +205,7 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 
 		var saveInterval = false;
 
-		function init(srpClient, callback){
+		function init(srpClient, fileKey, callback){
 			var trs = document.getElementById("data").getElementsByTagName("tr");
 
 			for (var i = 0; i < trs.length; i++) {
@@ -213,7 +217,7 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 				tds[3].addEventListener("click", changeCategory);
 			};
 
-			Data.initialize(srpClient, function(){
+			Data.initialize(srpClient, fileKey, function(){
 				Data.retrieveData([], function(d){
 					data = d;
 					for (var i in data) {
@@ -221,7 +225,7 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 							show(i);
 						};
 					};
-					saveInterval = window.setInterval(saveChanges, 10000) //every ten seconds
+					saveInterval = window.setInterval(saveChanges, 1000) //every second
 					callback();
 				});
 			});

@@ -1,4 +1,4 @@
-define(function(){
+define(["sjcl"], function(){
 	var Data = {};
 
 	var chunks = [];
@@ -14,7 +14,7 @@ define(function(){
 
 	function getChunkSize(version){
 		if(version == 1){
-			return 500;
+			return 10000;
 		} else {
 			alert("Something is wrong, please reload");
 			throw new Error("Something is wrong, please reload");
@@ -53,6 +53,7 @@ define(function(){
 				perCategory: 2,
 				chunk: {
 					version: 2,
+					iv: 24,
 					minDate: 2,
 					maxDate: 2,
 					minPrice: 3,
@@ -138,6 +139,7 @@ define(function(){
 	}
 
 	var srpClient = false;
+	var fileKey = false;
 
 	function getFile(filename, callback){
 		if(!srpClient || srpClient.state != "authenticated"){
@@ -212,11 +214,31 @@ define(function(){
 		xhr.send(JSON.stringify(message));
 	}
 
+	function pad(string, length){
+		if(string.length < length){
+			var character = string[string.length-1] || "0";
+			return (new Array(length-string.length+1).join(character) + string);
+		}
+		return string;
+	}
+
+	function getFileName(fileName, iv){
+		iv = iv || "vQAy6yxxMVTIrf+z/95Waw==";
+		console.log(fileName);
+		fileName = pad(fileName, 17);
+		var out = JSON.parse(sjcl.encrypt(fileKey.toBits(), fileName, {"iv":iv})).ct;
+		out = out.replace(/\//g, "-");
+		console.log(fileName);
+		console.log(out);
+		return out;
+	}
+
 	var indexChanged = false;
 	
-	function storeIndex(){
+	function storeIndex(callback){
 		if(indexChanged)
 		{
+			console.log("storing index");
 			console.assert(index.version == fileVersion);
 
 			var str = "";
@@ -236,6 +258,8 @@ define(function(){
 				var chunk = index.chunks[i];
 
 				str += numberToString(chunk.version, sizes.chunk.version);
+				console.assert(sizes.chunk.iv == chunk.iv.length);
+				str += chunk.iv;
 				str += dateToString(chunk.dateRange.min);
 				str += dateToString(chunk.dateRange.max);
 				str += numberToString(chunk.priceRange.min*100+8388608, sizes.chunk.minPrice);
@@ -250,86 +274,109 @@ define(function(){
 				str += numberToString(0, sizes.chunk.perName);
 			};
 
-			//TODO encrypt index and send it to server, callback for response?
-			//use extra module for crypto
-			localStorage.index = str;
-			indexChanged = false;
+			var fileName = getFileName("index");
+			var contents = sjcl.encrypt(fileKey.toBits(), str);
+			saveFile(fileName, contents, function(response){
+				if(!response.error && response.success){
+					indexChanged = false;
+				} else {
+					console.log("Error when saving index", response);
+				}
+				callback();
+			});
+		} else {
+			callback();
 		}
 	}
 
-	function loadIndex(){
-		//TODO load from server and decrypt
-		var str = localStorage.index;
-		if(!str){
-			return;
-		}
+	function loadIndex(callback){
+		var fileName = getFileName("index");
 
-		var position = 0;
+		getFile(fileName, function(result){
 
-		index = {};
+			var str = "";
+			if(!result.error){
+				str = result.contents;
+			}
+			if(str == ""){
+				callback();
+				return;
+			} else {
+				str = sjcl.decrypt(fileKey.toBits(), str);
+			}
 
-		index.version = stringToNumber(str.substr(position,2));
-		position += 2;
-		var sizes = getIndexSize(index.version);
+			var position = 0;
 
-		index.maxId = stringToNumber(str.substr(position,sizes.maxId));
-		position += sizes.maxId;
-		
-		var pos2 = position;
-		while (str[pos2] != "]"){
+			index = {};
+
+			index.version = stringToNumber(str.substr(position,2));
+			position += 2;
+			var sizes = getIndexSize(index.version);
+
+			index.maxId = stringToNumber(str.substr(position,sizes.maxId));
+			position += sizes.maxId;
+			
+			var pos2 = position;
+			while (str[pos2] != "]"){
+				pos2++;
+			}
 			pos2++;
-		}
-		pos2++;
-		index.names = JSON.parse(str.substring(position,pos2));
-		position = pos2;
+			index.names = JSON.parse(str.substring(position,pos2));
+			position = pos2;
 
-		while (str[pos2] != "]"){
+			while (str[pos2] != "]"){
+				pos2++;
+			}
 			pos2++;
-		}
-		pos2++;
-		index.categories = JSON.parse(str.substring(position,pos2));
-		position = pos2;
+			index.categories = JSON.parse(str.substring(position,pos2));
+			position = pos2;
 
-		index.categoriesPerName = [];
-		for (var i = index.names.length - 1; i >= 0; i--) {
-			index.categoriesPerName.push(stringToNumber(str.substr(position, sizes.perCategory))-1);
-			position += sizes.perCategory;
-		};
+			index.categoriesPerName = [];
+			for (var i = index.names.length - 1; i >= 0; i--) {
+				index.categoriesPerName.push(stringToNumber(str.substr(position, sizes.perCategory))-1);
+				position += sizes.perCategory;
+			};
 
-		index.chunks = [];
-		while(position < str.length){
-			var chunk = {};
-			index.chunks.push(chunk);
+			index.chunks = [];
+			while(position < str.length){
+				var chunk = {};
+				index.chunks.push(chunk);
 
-			chunk.version = stringToNumber(str.substr(position, sizes.chunk.version));
-			position += sizes.chunk.version;
+				chunk.version = stringToNumber(str.substr(position, sizes.chunk.version));
+				position += sizes.chunk.version;
 
-			chunk.dateRange = {};
-			chunk.dateRange.min = stringToDate(str.substr(position, sizes.chunk.minDate));
-			position += sizes.chunk.minDate;
-			chunk.dateRange.max = stringToDate(str.substr(position, sizes.chunk.maxDate));
-			position += sizes.chunk.maxDate;
+				chunk.iv = str.substr(position, sizes.chunk.iv);
+				position += sizes.chunk.iv;
 
-			chunk.priceRange = {};
-			chunk.priceRange.min = (stringToNumber(str.substr(position, sizes.chunk.minPrice))-8388608)/100;
-			position += sizes.chunk.minPrice;
-			chunk.priceRange.max = (stringToNumber(str.substr(position, sizes.chunk.maxPrice))-8388608)/100;
-			position += sizes.chunk.maxPrice;
+				chunk.dateRange = {};
+				chunk.dateRange.min = stringToDate(str.substr(position, sizes.chunk.minDate));
+				position += sizes.chunk.minDate;
+				chunk.dateRange.max = stringToDate(str.substr(position, sizes.chunk.maxDate));
+				position += sizes.chunk.maxDate;
 
-			chunk.names = [];
-			do{
-				var name = stringToNumber(str.substr(position, sizes.chunk.perName));
-				chunk.names.push(name-2);
-				position += sizes.chunk.perName;
-			}while(name != 0)
-			chunk.names.pop();
-		};		
+				chunk.priceRange = {};
+				chunk.priceRange.min = (stringToNumber(str.substr(position, sizes.chunk.minPrice))-8388608)/100;
+				position += sizes.chunk.minPrice;
+				chunk.priceRange.max = (stringToNumber(str.substr(position, sizes.chunk.maxPrice))-8388608)/100;
+				position += sizes.chunk.maxPrice;
+
+				chunk.names = [];
+				do{
+					var name = stringToNumber(str.substr(position, sizes.chunk.perName));
+					chunk.names.push(name-2);
+					position += sizes.chunk.perName;
+				}while(name != 0)
+				chunk.names.pop();
+			};		
+			callback();
+		});
 	}
 
 	var changedChunks = {};
 
-	function storeChunk(id){
+	function storeChunk(id, callback){
 		if(changedChunks[id]){
+			console.log("storing chunk " + id);
 			var chunk = chunks[id];
 			var chunkSize = getChunkSize(fileVersion);
 			var entrySize = getEntrySize(fileVersion);
@@ -350,17 +397,41 @@ define(function(){
 				}
 			}
 
-			//TODO encrypt chunk and send it to server, callback for response?
-			//use extra module for crypto
-			localStorage[id] = str;
-			delete changedChunks[id];
+			var fileName = getFileName("chunk"+id, index.chunks[id].iv);
+			var contents = sjcl.encrypt(fileKey.toBits(), str);
+			saveFile(fileName, contents, function(response){
+				if(!response.error && response.success){
+					delete changedChunks[id];
+				} else {
+					console.log("Error when saving chunk " + id, response);
+				}
+				callback();
+			});
+		} else {
+			callback();
 		}
 	}
 	
-	function storeChunks(){
+	function storeChunks(callback){
+		var todo = 0;
 		for(var i in changedChunks){
 			if(changedChunks.hasOwnProperty(i) && changedChunks[i]){
-				storeChunk(i);
+				todo++;
+			}
+		}
+
+		if(todo == 0){
+			callback();
+		} else {
+			for(var i in changedChunks){
+				if(changedChunks.hasOwnProperty(i) && changedChunks[i]){
+					storeChunk(i, function(){
+						todo--;
+						if(todo == 0){
+							callback();
+						}
+					});
+				}
 			}
 		}
 	}
@@ -374,31 +445,41 @@ define(function(){
 		return true;
 	}
 
-	function loadChunk(id, version){
-		//TODO load from server and decrypt
-		var str = localStorage[id];
-		if(!str){
-			return;
-		}
+	function loadChunk(id, version, callback){
+		var fileName = getFileName("chunk"+id, index.chunks[id].iv);
 
-		var entrySize = getEntrySize(version);
-		var chunkSize = getChunkSize(version);
+		getFile(fileName, function(result){
 
-		var chunk = [];
-
-		var index = 0;
-
-		while(index < chunkSize*entrySize.field)
-		{
-			var entry = str.substr(index, entrySize.field);
-			if(isAllZeros(entry)){
-				break;
-			}else{
-				chunk.push(stringToData(entry));
+			var str = "";
+			if(!result.error){
+				str = result.contents;
 			}
-			index += entrySize.field;
-		}
-		chunks[id] = chunk;
+			if(str == ""){
+				callback();
+				return;
+			} else {
+				str = sjcl.decrypt(fileKey.toBits(), str);
+			}
+			var entrySize = getEntrySize(version);
+			var chunkSize = getChunkSize(version);
+
+			var chunk = [];
+
+			var index = 0;
+
+			while(index < chunkSize*entrySize.field)
+			{
+				var entry = str.substr(index, entrySize.field);
+				if(isAllZeros(entry)){
+					break;
+				}else{
+					chunk.push(stringToData(entry));
+				}
+				index += entrySize.field;
+			}
+			chunks[id] = chunk;
+			callback();
+		});
 	}
 
 	function rebuildDateIndex(id){
@@ -494,7 +575,6 @@ define(function(){
 		}
 		data = internalizeData(data);
 
-		
 		var i = (id - id%chunkSize)/chunkSize;
 
 		var prev = false;
@@ -505,11 +585,12 @@ define(function(){
 				dateRange: {min: new Date(data.date), max: new Date(data.date)},
 				names: {},
 				priceRange: {min: data.price, max: data.price},
-				version: fileVersion
+				version: fileVersion,
+				iv: sjcl.codec.base64.fromBits(sjcl.random.randomWords(4))
 			};
 			indexChanged = true;
 		}else{
-			prev = chunks[i][id-i*500];
+			prev = chunks[i][id-i*chunkSize];
 
 			if(!prev){
 				if(index.chunks[i].dateRange.min > data.date){
@@ -528,7 +609,7 @@ define(function(){
 
 		index.chunks[i].names[data.name] = true;
 
-		chunks[i][id-i*500] = data
+		chunks[i][id-i*chunkSize] = data
 
 		if(prev){
 			if(prev.date != data.date){
@@ -571,35 +652,44 @@ define(function(){
 	}
 
 	Data.retrieveData = function(filters, callback){
-		//TODO respect filters, make asynchronous
-		var out = {};
-		for (var i = 0; i < index.chunks.length; i++) {
-			if(!chunks[i]){
-				loadChunk(i, index.chunks[i].version || fileVersion);
+		//TODO respect filters
+		if(index.chunks.length == 0){
+			callback({});
+		} else {
+			var out = {};
+			var done = 0;
+			for (var i = 0; i < index.chunks.length; i++) {
+				if(!chunks[i]){
+					loadChunk(i, index.chunks[i].version || fileVersion, function(){
+						done++;
+						if(done == index.chunks.length){
+							for (var i = 0; i < chunks.length; i++) {
+								for (var j = 0; j < chunks[i].length; j++) {
+									out[i*getChunkSize(fileVersion)+j] = externalizeData(chunks[i][j]);
+								}
+							}
+							callback(out);
+						}
+					});
+				}
 			}
-		};
-		for (var i = 0; i < chunks.length; i++) {
-			for (var j = 0; j < chunks[i].length; j++) {
-				out[i*getChunkSize(fileVersion)+j] = externalizeData(chunks[i][j]);
-			}
-		};
-		callback(out);
+		}
 	}
 
 	Data.__defineGetter__("maxId", function(){
 		return index.maxId;
 	})
 
-	Data.initialize = function(aSrpClient, callback){
-		//TODO make asynchronous;
+	Data.initialize = function(aSrpClient, aFileKey, callback){
 		srpClient = aSrpClient;
-		loadIndex();
-		callback();
+		fileKey = aFileKey;
+		loadIndex(callback);
 	}
 
 	Data.storeChanges = function(){
-		storeChunks();
-		storeIndex();
+		storeChunks(function(){
+			storeIndex(function(){});
+		});
 	}
 
 	Data.debug = {};
@@ -609,6 +699,7 @@ define(function(){
 	Data.debug.__defineGetter__("chunks", function(){
 		return chunks;
 	});
+	Data.debug.getFileName = getFileName;
 
 	return Data;
 
