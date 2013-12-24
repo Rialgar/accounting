@@ -109,6 +109,7 @@ SRP.loginU = function(message)
 
 	try {
 		sessions[I] = {
+			remoteAddress: message.remoteAddress,
 			state: "A_received",
 			I: new sjcl.bn("0x" + I),
 			A: new sjcl.bn("0x" + A),
@@ -208,21 +209,49 @@ SRP.loginP = function(message)
 
 	if(	sessions[I] &&
 		sessions[I].state == "secret_generated" &&
+		sessions[I].remoteAddress == message.remoteAddress &&
 		sessions[I].M1.toString() == "0x"+message.M1)
 	{
-		sessions[I].sate = "authenticated";
+		sessions[I].state = "authenticated";
 		util.log("Login successfull for Account: ".green + I);
 		return {
 			success: true,
 			M2: sessions[I].M2.toString().substring(2)
 		}
 	}
-
 	else
 	{
 		util.log("Login failed for account: ".red + I);
 		delete sessions[I];
 		return {success: false};
+	}
+}
+
+/**
+*	Checks if the provided parameters correspond to an active session. If a Session matching the Identifier exists, but M1, M2 or remoteAddress do not match, the Session is ended.
+*
+*	@param I the users Identifier, derived from the username
+*	@param M1 the users proof of identity/conformity
+*	@param M2 the proof of Identity we sent to the user
+*	@param remoteAddress the Address of the user
+*
+**/
+
+SRP.hasSession = function(I, M1, M2, remoteAddress)
+{
+	if(	sessions[I] &&
+		sessions[I].state == "authenticated" &&
+		sessions[I].remoteAddress == remoteAddress &&
+		sessions[I].M1.toString() == "0x"+M1 && 
+		sessions[I].M2.toString() == "0x"+M2)
+	{
+		return true;
+	}
+	else
+	{
+		console.log("Invalid request for account: ".red + I)
+		delete sessions[I];
+		return false;
 	}
 }
 

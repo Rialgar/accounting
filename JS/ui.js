@@ -47,7 +47,7 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 
 		function signinSuccess(srpClient){
 			console.log("Authentification succesfull");
-			init(function(){
+			init(srpClient, function(){
 				document.getElementById("loadingIndicator").style.display = "none";		
 				document.getElementById(mode).style.display = "block";
 			});
@@ -199,7 +199,9 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 			}
 		}
 
-		function init(callback){
+		var saveInterval = false;
+
+		function init(srpClient, callback){
 			var trs = document.getElementById("data").getElementsByTagName("tr");
 
 			for (var i = 0; i < trs.length; i++) {
@@ -211,7 +213,7 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 				tds[3].addEventListener("click", changeCategory);
 			};
 
-			Data.initialize(function(){
+			Data.initialize(srpClient, function(){
 				Data.retrieveData([], function(d){
 					data = d;
 					for (var i in data) {
@@ -219,9 +221,14 @@ require(['libs/domReady', 'data', 'srp'], function(domReady, Data, SRP){
 							show(i);
 						};
 					};
+					saveInterval = window.setInterval(saveChanges, 10000) //every ten seconds
 					callback();
 				});
 			});
+		};
+
+		function saveChanges(){
+			Data.storeChanges();
 		};
 
 		window.debug={

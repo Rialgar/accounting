@@ -137,6 +137,81 @@ define(function(){
 		}
 	}
 
+	var srpClient = false;
+
+	function getFile(filename, callback){
+		if(!srpClient || srpClient.state != "authenticated"){
+			console.log("Tried to get a File while not logged in, aborting.")
+			return;
+		}
+
+		var xhr = new XMLHttpRequest();
+
+		xhr.onreadystatechange = function()
+		{
+			if(xhr.readyState == 4 && callback && typeof callback == "function")
+			{
+				var response;
+				if(xhr.status >= 200 && xhr.status < 300)
+				{
+					response = {contents: xhr.responseText};
+				}
+				else
+				{
+					response = {error: xhr.status}
+				}
+				callback.call(window, response);
+			}
+		}
+
+		var url = "./getFile/"+filename;
+		var message = {
+			I: srpClient.I.toString().substring(2),
+			M1: srpClient.M1.toString().substring(2),
+			M2: srpClient.M2.toString().substring(2)
+		}
+
+		xhr.open("POST", url, true);
+		xhr.send(JSON.stringify(message));
+	}
+
+	function saveFile(filename, contents, callback){
+		if(!srpClient || srpClient.state != "authenticated"){
+			console.log("Tried to save a File while not logged in, aborting.")
+			return;
+		}
+		
+		var xhr = new XMLHttpRequest();
+
+		xhr.onreadystatechange = function()
+		{
+			if(xhr.readyState == 4 && callback && typeof callback == "function")
+			{
+				var response;
+				if(xhr.status >= 200 && xhr.status < 300)
+				{
+					response = JSON.parse(xhr.responseText);
+				}
+				else
+				{
+					response = {error: xhr.status}
+				}
+				callback.call(window, response);
+			}
+		}
+
+		var url = "./saveFile/"+filename;
+		var message = {
+			I: srpClient.I.toString().substring(2),
+			M1: srpClient.M1.toString().substring(2),
+			M2: srpClient.M2.toString().substring(2),
+			contents: contents
+		}
+
+		xhr.open("POST", url, true);
+		xhr.send(JSON.stringify(message));
+	}
+
 	var indexChanged = false;
 	
 	function storeIndex(){
@@ -251,31 +326,43 @@ define(function(){
 		};		
 	}
 
+	var changedChunks = {};
+
 	function storeChunk(id){
-		var chunk = chunks[id];
-		var chunkSize = getChunkSize(fileVersion);
-		var entrySize = getEntrySize(fileVersion);
+		if(changedChunks[id]){
+			var chunk = chunks[id];
+			var chunkSize = getChunkSize(fileVersion);
+			var entrySize = getEntrySize(fileVersion);
 
-		var str = "";
+			var str = "";
 
-		for(var i = 0; i<chunk.length; i++){
-			str += dataToString(chunk[i]);
-		}
+			for(var i = 0; i<chunk.length; i++){
+				str += dataToString(chunk[i]);
+			}
 
-		if(chunk.length < chunkSize){
-			str += new Array(entrySize.field+1).join(String.fromCharCode(0));
+			if(chunk.length < chunkSize){
+				str += new Array(entrySize.field+1).join(String.fromCharCode(0));
 
-			for(var i = chunk.length+1; i < chunkSize; i++){
-				for(var j = 0; j < entrySize.field; j++){
-					str += String.fromCharCode(Math.floor(Math.random()*256));
+				for(var i = chunk.length+1; i < chunkSize; i++){
+					for(var j = 0; j < entrySize.field; j++){
+						str += String.fromCharCode(Math.floor(Math.random()*256));
+					}
 				}
 			}
-		}
 
-		//TODO encrypt chunk and send it to server, callback for response?
-		//use extra module for crypto
-		localStorage[id] = str;
-		indexChanged = false;
+			//TODO encrypt chunk and send it to server, callback for response?
+			//use extra module for crypto
+			localStorage[id] = str;
+			delete changedChunks[id];
+		}
+	}
+	
+	function storeChunks(){
+		for(var i in changedChunks){
+			if(changedChunks.hasOwnProperty(i) && changedChunks[i]){
+				storeChunk(i);
+			}
+		}
 	}
 
 	function isAllZeros(string){
@@ -455,8 +542,7 @@ define(function(){
 			}
 		}
 
-		storeIndex();
-		storeChunk(i);
+		changedChunks[i] = true;
 	}
 
 	Data.getCategoryForName = function(name){
@@ -481,7 +567,6 @@ define(function(){
 			}
 			index.categoriesPerName[id] = catId;
 			indexChanged = (prevCatId != catId);
-			storeIndex();
 		}
 	}
 
@@ -505,10 +590,16 @@ define(function(){
 		return index.maxId;
 	})
 
-	Data.initialize = function(callback){
+	Data.initialize = function(aSrpClient, callback){
 		//TODO make asynchronous;
+		srpClient = aSrpClient;
 		loadIndex();
 		callback();
+	}
+
+	Data.storeChanges = function(){
+		storeChunks();
+		storeIndex();
 	}
 
 	Data.debug = {};
@@ -518,7 +609,6 @@ define(function(){
 	Data.debug.__defineGetter__("chunks", function(){
 		return chunks;
 	});
-	Data.debug.stringToData = stringToData;
 
 	return Data;
 

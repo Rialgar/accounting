@@ -15,9 +15,80 @@ var types = {
 	WOFF: "application/x-font-woff" 
 };
 
+var ex = fileSystem.existsSync("./data");
+if(!ex){
+	var error = fileSystem.mkdirSync("./data");
+	if(error){
+		util.log("Could not create ./data".red);
+		return;
+	}
+	delete error;
+} else {
+	var stats = fileSystem.statSync("./data");
+	if(!stats.isDirectory()){
+		util.log("There is ./data, but it is not a directory".red);
+		return;
+	}
+	delete stats;
+}
+delete ex;
+
+var save = function(prefix, file, contents, response)
+{
+	var folder = path.join(__dirname, "./"+prefix);
+	var filePath = path.join(__dirname, "./"+prefix+file);
+	util.log("saving file: ".green + filePath);
+
+	fileSystem.exists(folder, function(exists){
+		if(!exists){
+			var error = fileSystem.mkdirSync(folder);
+			if(error){
+				util.log("Could not create userdir: ".red + folder);
+				response.writeHead(505, {
+		        	"Content-Type": "text/plain; charset=utf-8",
+		        	"Content-Length": 0
+		    	});
+
+		    	response.end();
+				return;
+			}
+		}
+		fileSystem.stat(folder, function(error, stat){
+			if(!error && stat.isDirectory()){
+				fileSystem.writeFile(filePath, contents, function(error){
+					if(!error){
+						var out = JSON.stringify({success: true});
+						response.writeHead(200,{
+							"Content-Type": "application/json",
+				        	"Content-Length": out.length
+						});
+						response.end(out);
+					}else{
+						util.log("Could not write file: ".red + filePath + "  ");
+						response.writeHead(505, {
+				        	"Content-Type": "text/plain; charset=utf-8",
+				        	"Content-Length": 0
+				    	});
+
+				    	response.end();
+					}
+				});
+			} else {
+				util.log("Could not access userdir: ".red + folder);
+				response.writeHead(505, {
+		        	"Content-Type": "text/plain; charset=utf-8",
+		        	"Content-Length": 0
+		    	});
+
+		    	response.end();
+			}
+		});
+	});
+}
+
 var serve = function(prefix, file, type, response)
 {
-	var filePath = path.join(__dirname, ".."+prefix+file);
+	var filePath = path.join(__dirname, "./"+prefix+file);
 
 	util.log("serving file: ".green + filePath);
 
@@ -66,7 +137,34 @@ var serveFile = function(requestedFile, response, prefix)
 
 	prefix = typeof prefix == "string" ? prefix : "/"+ending;
 
-	serve(prefix, requestedFile, types[ending], response);
+	serve(".."+prefix, requestedFile, types[ending], response);
+}
+
+var readMessage = function(request, callback){
+	var body = "";
+    request.on("data", function (data) {
+        body += data;
+    });
+    request.on("end", function () {
+
+    	try
+    	{
+            var message = JSON.parse(body);
+            message.remoteAddress = request.connection.remoteAddress;
+
+            callback(message);
+    	}
+    	catch(e)
+    	{
+    		util.log(e.stack.toString().red);
+    		response.writeHead(505, {
+	        	"Content-Type": "text/plain; charset=utf-8",
+	        	"Content-Length": 0
+	    	});
+	    	response.end();
+    	}
+
+    });
 }
 
 var handler = function (request, response) {
@@ -88,16 +186,8 @@ var handler = function (request, response) {
 	{
 		if(SRP[array[2]])
 		{
-			var body = "";
-	        request.on("data", function (data) {
-	            body += data;
-	        });
-	        request.on("end", function () {
-
-	        	try
-	        	{
-		            var message = JSON.parse(body);
-
+			readMessage(request, function(message){
+				try{
 		            var result = SRP[array[2]](message);
 
 		            var responseText = JSON.stringify(result);
@@ -111,9 +201,9 @@ var handler = function (request, response) {
 		    	}
 		    	catch(e)
 		    	{
-		    		util.error(e.stack);
+		    		util.log(e.stack.toString().red);
 		    		response.writeHead(505, {
-			        	"Content-Type": "application/json",
+			        	"Content-Type": "text/plain; charset=utf-8",
 			        	"Content-Length": 0
 			    	});
 			    	response.end();
@@ -121,6 +211,64 @@ var handler = function (request, response) {
 
 	        });
     	}
+	}
+	else if(array[1] == "getFile")
+	{
+		readMessage(request, function(message){
+			try{
+	            if(SRP.hasSession(message.I, message.M1, message.M2, message.remoteAddress))
+	            {
+	            	serve("data/"+message.I, "/"+array[2], "text/plain; charset=utf-8", response);
+				}
+				else
+				{
+					response.writeHead(403, {
+			        	"Content-Type": "text/plain; charset=utf-8",
+			        	"Content-Length": 0
+			    	});
+
+			    	response.end();
+				}
+	    	}
+	    	catch(e)
+	    	{
+	    		util.log(e.stack.toString().red);
+	    		response.writeHead(505, {
+		        	"Content-Type": "text/plain; charset=utf-8",
+		        	"Content-Length": 0
+		    	});
+		    	response.end();
+	    	}
+        });
+	}
+	else if(array[1] == "saveFile")
+	{
+		readMessage(request, function(message){
+			try{
+	            if(SRP.hasSession(message.I, message.M1, message.M2, message.remoteAddress))
+	            {
+	            	save("data/"+message.I, "/"+array[2], message.contents, response);
+				}
+				else
+				{
+					response.writeHead(403, {
+			        	"Content-Type": "text/plain; charset=utf-8",
+			        	"Content-Length": 0
+			    	});
+
+			    	response.end();
+				}
+	    	}
+	    	catch(e)
+	    	{
+	    		util.log(e.stack.toString().red);
+	    		response.writeHead(505, {
+		        	"Content-Type": "text/plain; charset=utf-8",
+		        	"Content-Length": 0
+		    	});
+		    	response.end();
+	    	}
+        });
 	}
 	else
 	{
