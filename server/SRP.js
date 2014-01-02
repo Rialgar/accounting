@@ -43,6 +43,8 @@ SRP.k = new sjcl.bn(1);
 
 SRP.createAccount = function(message)
 {
+	return {error: "account creation disabled"};
+	
 	if(!message.I || !message.s || !message.v)
 	{
 		util.log("Malformed account creation request".red);

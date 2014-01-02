@@ -235,7 +235,7 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 			Data.storeChanges();
 		};
 
-		window.debug={
+		/*window.debug={
 		};
 
 		window.debug.__defineGetter__("data", function(){
@@ -248,6 +248,6 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 
 		window.debug.__defineGetter__("SRP", function(){
 			return SRP;
-		});
+		});*/
 	});
 });

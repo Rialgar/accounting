@@ -692,14 +692,14 @@ define(["sjcl"], function(){
 		});
 	}
 
-	Data.debug = {};
+	/*Data.debug = {};
 	Data.debug.__defineGetter__("index", function(){
 		return index;
 	});
 	Data.debug.__defineGetter__("chunks", function(){
 		return chunks;
 	});
-	Data.debug.getFileName = getFileName;
+	Data.debug.getFileName = getFileName;*/
 
 	return Data;
 
