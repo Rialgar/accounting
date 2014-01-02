@@ -125,6 +125,11 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 
 		var data = {};
 
+		function pad(string, length){
+			string = "" + string;
+			return new Array(Math.max(0,length+1-string.length)).join("0") + string;
+		}
+
 		function show(id){
 			if(data[id]){
 				var row = document.getElementById("data_"+id);
@@ -134,7 +139,9 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 					createNewRow();
 				}
 				var tds = row.getElementsByTagName("td");
-				tds[0].textContent = data[id].date.getFullYear() + "-" + (data[id].date.getMonth()+1) + "-" + data[id].date.getDate();
+				tds[0].textContent = pad(data[id].date.getFullYear(), 4) + "-" +
+									pad((data[id].date.getMonth()+1), 2) + "-" +
+									pad(data[id].date.getDate(), 2);
 				tds[1].textContent = data[id].name;
 				tds[2].textContent = data[id].price.toFixed(2) + "€";
 				tds[3].textContent = Data.getCategoryForName(data[id].name);
