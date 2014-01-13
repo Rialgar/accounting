@@ -98,10 +98,6 @@ body {
   overflow: auto;
 }
 
-#tables_content td, #tables_content th{
-  width: 25%;
-}
-
 #wrapper {
   margin-top: -51px;
   padding-top: 51px;
@@ -114,15 +110,14 @@ body {
   height: 35px;
 }
 
-#data tr {
-  height: 2.5em;
-}
-
-#data td {
-  height: 2.5em;
+#data tr, #data td {
+  width: 25%; height: 2.5em;
 }
 
 #data td:hover {
-  height: 2.5em;
-  background-color: gray;
+  background-color: #CCC;
+}
+
+#data tr:hover {
+  background-color: #EEE;
 }
