@@ -177,10 +177,10 @@ define(["sjcl"], function(){
 		xhr.send(JSON.stringify(message));
 	}
 
-	function saveFile(filename, contents, callback){
+	function saveFiles(contents, callback){
 		if(!srpClient || srpClient.state != "authenticated"){
 			console.log("Tried to save a File while not logged in, aborting.")
-			return;
+			return {error: "Not logged in"};
 		}
 		
 		var xhr = new XMLHttpRequest();
@@ -202,7 +202,7 @@ define(["sjcl"], function(){
 			}
 		}
 
-		var url = "./saveFile/"+filename;
+		var url = "./saveFiles/"+Math.random();
 		var message = {
 			I: srpClient.I.toString().substring(2),
 			M1: srpClient.M1.toString().substring(2),
@@ -238,7 +238,6 @@ define(["sjcl"], function(){
 	function storeIndex(callback){
 		if(indexChanged)
 		{
-			console.log("storing index");
 			console.assert(index.version == fileVersion);
 
 			var str = "";
@@ -276,16 +275,9 @@ define(["sjcl"], function(){
 
 			var fileName = getFileName("index");
 			var contents = sjcl.encrypt(fileKey.toBits(), str);
-			saveFile(fileName, contents, function(response){
-				if(!response.error && response.success){
-					indexChanged = false;
-				} else {
-					console.log("Error when saving index", response);
-				}
-				callback();
-			});
+			return {n: fileName, c: contents};
 		} else {
-			callback();
+			return false;
 		}
 	}
 
@@ -374,7 +366,7 @@ define(["sjcl"], function(){
 
 	var changedChunks = {};
 
-	function storeChunk(id, callback){
+	function storeChunk(id){
 		if(changedChunks[id]){
 			console.log("storing chunk " + id);
 			var chunk = chunks[id];
@@ -399,41 +391,27 @@ define(["sjcl"], function(){
 
 			var fileName = getFileName("chunk"+id, index.chunks[id].iv);
 			var contents = sjcl.encrypt(fileKey.toBits(), str);
-			saveFile(fileName, contents, function(response){
-				if(!response.error && response.success){
-					delete changedChunks[id];
-				} else {
-					console.log("Error when saving chunk " + id, response);
-				}
-				callback();
-			});
+			return {n: fileName, c: contents};
 		} else {
-			callback();
+			return false;
 		}
 	}
-	
-	function storeChunks(callback){
-		var todo = 0;
+
+	var saving = [];
+	function storeChunks(){
+		var out = [];
+		saving = [];
+
 		for(var i in changedChunks){
 			if(changedChunks.hasOwnProperty(i) && changedChunks[i]){
-				todo++;
-			}
-		}
-
-		if(todo == 0){
-			callback();
-		} else {
-			for(var i in changedChunks){
-				if(changedChunks.hasOwnProperty(i) && changedChunks[i]){
-					storeChunk(i, function(){
-						todo--;
-						if(todo == 0){
-							callback();
-						}
-					});
+				var store = storeChunk(i);
+				if(store){
+					out.push(store);
+					saving.push(i);
 				}
 			}
 		}
+		return out;
 	}
 
 	function isAllZeros(string){
@@ -686,10 +664,35 @@ define(["sjcl"], function(){
 		loadIndex(callback);
 	}
 
-	Data.storeChanges = function(){
-		storeChunks(function(){
-			storeIndex(function(){});
-		});
+	Data.storeChanges = function(callback_success, callback_error){
+		var arr = storeChunks();
+		var id = storeIndex();
+		if(id){
+			arr.push(id);
+		}
+		if(arr.length > 0){
+			saveFiles(arr, function(result){
+				if(!result.error && result.success){
+					for (i in saving) {
+						if(saving.hasOwnProperty(i)) {
+							delete changedChunks[i];
+						}
+					}
+					indexChanged = false;
+					if (typeof callback_success == "function") {
+						callback_success();
+					}
+				} else {
+					if (typeof callback_error == "function") {
+						callback_error();
+					}
+				}
+			});
+		} else {
+			if (typeof callback_success == "function") {
+				callback_success();
+			}
+		}
 	}
 
 	/*Data.debug = {};

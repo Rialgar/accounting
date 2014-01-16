@@ -210,7 +210,7 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 			}
 		}
 
-		var saveInterval = false;
+		var saveTimeout = false;
 
 		function init(srpClient, fileKey, callback){
 			var trs = document.getElementById("data").getElementsByTagName("tr");
@@ -232,14 +232,19 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 							show(i);
 						};
 					};
-					saveInterval = window.setInterval(saveChanges, 1000) //every second
+					saveTimeout = window.setTimeout(saveChanges, 1000); //every second
 					callback();
 				});
 			});
 		};
 
 		function saveChanges(){
-			Data.storeChanges();
+			Data.storeChanges(function(){
+					saveTimeout = window.setTimeout(saveChanges, 1000); //every second
+				}, function(){
+					alert("You have been logged out");
+					window.location = ".";
+			});
 		};
 
 		/*window.debug={

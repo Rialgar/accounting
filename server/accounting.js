@@ -33,54 +33,36 @@ if(!ex){
 }
 delete ex;
 
-var save = function(prefix, file, contents, response)
+var save = function(prefix, file, contents, callback)
 {
+	if(typeof callback != "function"){
+		callback = function(){};
+	}
 	var folder = path.join(__dirname, "./"+prefix);
 	var filePath = path.join(__dirname, "./"+prefix+file);
-	util.log("saving file: ".green + filePath);
+	util.log("saving file: ".cyan + filePath);
 
 	fileSystem.exists(folder, function(exists){
 		if(!exists){
 			var error = fileSystem.mkdirSync(folder);
 			if(error){
 				util.log("Could not create userdir: ".red + folder);
-				response.writeHead(505, {
-		        	"Content-Type": "text/plain; charset=utf-8",
-		        	"Content-Length": 0
-		    	});
-
-		    	response.end();
-				return;
+				callback(false);
 			}
 		}
 		fileSystem.stat(folder, function(error, stat){
 			if(!error && stat.isDirectory()){
 				fileSystem.writeFile(filePath, contents, function(error){
 					if(!error){
-						var out = JSON.stringify({success: true});
-						response.writeHead(200,{
-							"Content-Type": "application/json",
-				        	"Content-Length": out.length
-						});
-						response.end(out);
+						callback(true);
 					}else{
 						util.log("Could not write file: ".red + filePath + "  ");
-						response.writeHead(505, {
-				        	"Content-Type": "text/plain; charset=utf-8",
-				        	"Content-Length": 0
-				    	});
-
-				    	response.end();
+						callback(false);
 					}
 				});
 			} else {
 				util.log("Could not access userdir: ".red + folder);
-				response.writeHead(505, {
-		        	"Content-Type": "text/plain; charset=utf-8",
-		        	"Content-Length": 0
-		    	});
-
-		    	response.end();
+				callback(false);
 			}
 		});
 	});
@@ -157,7 +139,7 @@ var readMessage = function(request, callback){
     	catch(e)
     	{
     		util.log(e.stack.toString().red);
-    		response.writeHead(505, {
+    		response.writeHead(500, {
 	        	"Content-Type": "text/plain; charset=utf-8",
 	        	"Content-Length": 0
 	    	});
@@ -202,7 +184,7 @@ var handler = function (request, response) {
 		    	catch(e)
 		    	{
 		    		util.log(e.stack.toString().red);
-		    		response.writeHead(505, {
+		    		response.writeHead(500, {
 			        	"Content-Type": "text/plain; charset=utf-8",
 			        	"Content-Length": 0
 			    	});
@@ -233,7 +215,7 @@ var handler = function (request, response) {
 	    	catch(e)
 	    	{
 	    		util.log(e.stack.toString().red);
-	    		response.writeHead(505, {
+	    		response.writeHead(500, {
 		        	"Content-Type": "text/plain; charset=utf-8",
 		        	"Content-Length": 0
 		    	});
@@ -241,13 +223,47 @@ var handler = function (request, response) {
 	    	}
         });
 	}
-	else if(array[1] == "saveFile")
+	else if(array[1] == "saveFiles")
 	{
 		readMessage(request, function(message){
 			try{
 	            if(SRP.hasSession(message.I, message.M1, message.M2, message.remoteAddress))
 	            {
-	            	save("data/"+message.I, "/"+array[2], message.contents, response);
+	            	var success = true;
+	            	var done = 0;
+	            	if(!(message.contents.length > 0)){
+	            		var result = {success: true};
+			            var responseText = JSON.stringify(result);
+			            response.writeHead(200, {
+				        	"Content-Type": "application/json",
+				        	"Content-Length": responseText.length
+				    	});
+				    	response.end(responseText);
+				    	return;
+	            	}
+	            	for (var i = 0; i < message.contents.length; i++) {
+	            		save("data/"+message.I, "/"+message.contents[i].n, message.contents[i].c, function(saved){
+	            			done++;
+	            			success &= saved;
+	            			if(done == message.contents.length){
+			            		if (success) {
+			            			var result = {success: true};
+						            var responseText = JSON.stringify(result);
+						            response.writeHead(200, {
+							        	"Content-Type": "application/json",
+							        	"Content-Length": responseText.length
+							    	});
+							    	response.end(responseText);
+			            		} else {
+			            			response.writeHead(500, {
+							        	"Content-Type": "text/plain; charset=utf-8",
+							        	"Content-Length": 0
+							    	});
+							    	response.end();			
+			            		}
+		            		}
+		            	});
+	            	}	            	
 				}
 				else
 				{
@@ -255,14 +271,13 @@ var handler = function (request, response) {
 			        	"Content-Type": "text/plain; charset=utf-8",
 			        	"Content-Length": 0
 			    	});
-
 			    	response.end();
 				}
 	    	}
 	    	catch(e)
 	    	{
 	    		util.log(e.stack.toString().red);
-	    		response.writeHead(505, {
+	    		response.writeHead(500, {
 		        	"Content-Type": "text/plain; charset=utf-8",
 		        	"Content-Length": 0
 		    	});
