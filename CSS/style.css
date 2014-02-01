@@ -110,6 +110,10 @@ body {
   height: 35px;
 }
 
+#thead th:hover{
+  background-color: #EEE;
+}
+
 #data tr, #data td {
   width: 25%; height: 2.5em;
 }
