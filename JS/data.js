@@ -224,12 +224,9 @@ define(["sjcl"], function(){
 
 	function getFileName(fileName, iv){
 		iv = iv || "vQAy6yxxMVTIrf+z/95Waw==";
-		console.log(fileName);
 		fileName = pad(fileName, 17);
 		var out = JSON.parse(sjcl.encrypt(fileKey.toBits(), fileName, {"iv":iv})).ct;
 		out = out.replace(/\//g, "-");
-		console.log(fileName);
-		console.log(out);
 		return out;
 	}
 
@@ -238,6 +235,7 @@ define(["sjcl"], function(){
 	function storeIndex(callback){
 		if(indexChanged)
 		{
+			console.log("storing index");
 			console.assert(index.version == fileVersion);
 
 			var str = "";
@@ -249,7 +247,7 @@ define(["sjcl"], function(){
 			str += JSON.stringify(index.names);
 			str += JSON.stringify(index.categories);
 
-			for (var i = 0; i < index.categoriesPerName.length; i++) {
+			for (var i = 0; i < index.names.length; i++) {
 				str += numberToString(index.categoriesPerName[i]+1, sizes.perCategory);
 			};
 
@@ -636,19 +634,22 @@ define(["sjcl"], function(){
 		} else {
 			var out = {};
 			var done = 0;
+			function cb(){
+				done++;
+				if(done == index.chunks.length){
+					for (var i = 0; i < chunks.length; i++) {
+						for (var j = 0; j < chunks[i].length; j++) {
+							out[i*getChunkSize(fileVersion)+j] = externalizeData(chunks[i][j]);
+						}
+					}
+					callback(out);
+				}
+			};
 			for (var i = 0; i < index.chunks.length; i++) {
 				if(!chunks[i]){
-					loadChunk(i, index.chunks[i].version || fileVersion, function(){
-						done++;
-						if(done == index.chunks.length){
-							for (var i = 0; i < chunks.length; i++) {
-								for (var j = 0; j < chunks[i].length; j++) {
-									out[i*getChunkSize(fileVersion)+j] = externalizeData(chunks[i][j]);
-								}
-							}
-							callback(out);
-						}
-					});
+					loadChunk(i, index.chunks[i].version || fileVersion, cb);
+				} else {
+					cb();
 				}
 			}
 		}
@@ -695,14 +696,66 @@ define(["sjcl"], function(){
 		}
 	}
 
-	/*Data.debug = {};
+	Data.rebuildIndices = function(){
+		this.retrieveData([], function(){
+			var used = {};
+			for (var i = 0; i < chunks.length; i++) {
+				var chunk = chunks[i];
+				chunk.forEach(function(entry){
+					used[entry.name] = true;
+				});
+			}
+			for(var i = 0; i < index.names.length; i++){
+				if(!used[i]){
+					index.names.splice(i,1);
+					index.categoriesPerName.splice(i,1);
+					indexChanged = true;
+					for (var j = 0; j < chunks.length; j++) {
+						var chunk = chunks[j];
+						chunk.forEach(function(entry){
+							if(entry.name >= i){
+								entry.name--;
+								changedChunks[j] = true;
+							}
+						});
+					};
+					for (var j = i; j < index.names.length; j++) {
+						used[j] = used[j+1];
+					};
+					i--;
+				}	
+			}
+
+			used = {};
+			for (var i = 0; i < index.categoriesPerName.length; i++) {
+				used[index.categoriesPerName[i]] = true;
+			};
+			for (var i = 0; i < index.categories.length; i++) {
+				if(!used[i]){
+					index.categories.splice(i,1);
+					indexChanged = true;
+					for (var j = 0; j < index.categoriesPerName.length; j++) {
+						if(index.categoriesPerName[j] >= i){
+							index.categoriesPerName[j]--;
+						}
+					};
+					for (var j = i; j < index.names.length; j++) {
+						used[j] = used[j+1];
+					};
+					i--;
+				}
+			};
+		});
+	}
+
+	Data.debug = {};
 	Data.debug.__defineGetter__("index", function(){
 		return index;
 	});
 	Data.debug.__defineGetter__("chunks", function(){
 		return chunks;
 	});
-	Data.debug.getFileName = getFileName;*/
+	Data.debug.getFileName = getFileName;
 
 	return Data;
 

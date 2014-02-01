@@ -350,6 +350,15 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 					callback();
 				});
 			});
+
+			document.getElementById("rebuild").addEventListener("click", function(evt){
+				if(evt.button == 0){
+					evt.preventDefault();
+					if(confirm("Rebuild date and category index? (This may take a while, depending on the number of your entries)")){
+						Data.rebuildIndices();
+					}
+				}
+			});
 		};
 
 		function saveChanges(){
