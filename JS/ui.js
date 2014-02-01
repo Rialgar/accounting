@@ -148,6 +148,19 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 			}
 		}
 
+		function parseDate(str){
+			var arr = str.split("-");
+
+			var date = new Date(0);
+
+			if(arr.length == 3){
+				date.setFullYear(parseInt(arr[0]));
+				date.setMonth(parseInt(arr[1])-1);
+				date.setDate(parseInt(arr[2]));
+			}
+			return date;
+		}
+
 		function saveEdit(evt){
 			var id = this.parentElement.getAttribute("id").substring(5);
 			var field = this.getAttribute("class");
@@ -158,7 +171,8 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 					return;
 				}
 				id = Data.maxId+1;
-				var date = new Date();
+				var trs = this.parentElement.parentElement.getElementsByTagName("tr");
+				var date = parseDate(trs[trs.length-2].getElementsByClassName("date")[0].textContent);
 				data[id] = {
 					date: date,
 					name: "",
@@ -168,12 +182,37 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 			}
 			
 			if(field == "date") {
-				var arr = value.split("-");
+				var date = parseDate(value);
+				if(date.valueOf() === 0) {
+					var td = new Date();
+					date.setFullYear(td.getFullYear());
+					date.setMonth(td.getMonth());
 
-				var date = new Date(0);
-				date.setFullYear(parseInt(arr[0]));
-				date.setMonth(parseInt(arr[1])-1);
-				date.setDate(parseInt(arr[2]));
+					switch(value.toLowerCase()){
+						case "monday":
+							date.setDate(td.getDate()-(( 7+(td.getDay()-1) )%7)); break;
+						case "tuesday":
+							date.setDate(td.getDate()-(( 7+(td.getDay()-2) )%7)); break;
+						case "wednesday":
+							date.setDate(td.getDate()-(( 7+(td.getDay()-3) )%7)); break;
+						case "thursday":
+							date.setDate(td.getDate()-(( 7+(td.getDay()-4) )%7)); break;
+						case "friday":
+							date.setDate(td.getDate()-(( 7+(td.getDay()-5) )%7)); break;
+						case "saturday":
+							date.setDate(td.getDate()-(( 7+(td.getDay()-6) )%7)); break;
+						case "sunday":
+							date.setDate(td.getDate()-(( 7+(td.getDay()-7) )%7)); break;
+						case "last week":					
+							date.setDate(td.getDate()-7); break;
+						case "yesterday":
+							date.setDate(td.getDate()-1); break;
+						case "today":
+							date.setDate(td.getDate()); break;
+						default:
+							date.setDate(NaN);
+					};
+				}
 				if(!isNaN(date.valueOf())){
 					data[id].date = date;
 				}
