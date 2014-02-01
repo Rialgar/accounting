@@ -172,7 +172,11 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 				}
 				id = Data.maxId+1;
 				var trs = this.parentElement.parentElement.getElementsByTagName("tr");
-				var date = parseDate(trs[trs.length-2].getElementsByClassName("date")[0].textContent);
+
+				var date = new Date();
+				if(trs.length >= 2){
+					date = parseDate(trs[trs.length-2].getElementsByClassName("date")[0].textContent);
+				}
 				data[id] = {
 					date: date,
 					name: "",
