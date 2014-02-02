@@ -125,3 +125,7 @@ body {
 #data tr:hover {
   background-color: #EEE;
 }
+
+#viewEditor {
+  background-color: rgba(0,0,0,0.5);
+}

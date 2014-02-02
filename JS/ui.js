@@ -4,8 +4,9 @@ require.config({
   }
 });
 
-require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
+require(['libs/domReady', 'data', 'viewEditor', 'srp', 'sjcl'], function(domReady, Data, viewEditor, SRP){
 	domReady(function(){
+		"use strict";
 		function signin()
 		{
 			document.getElementById("signin").style.display = "none";
@@ -17,26 +18,26 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 
 			new SRP.Client(username, function(client, message){
 				if (message == "A generated") {
-					delete username;
+					username = false;
 					client.sendA();
 				} else if (message == "Password required") {
 					fileKey = sjcl.bn.fromBits(sjcl.misc.pbkdf2(password, client.s.mul(23).toBits()));
 					client.setPassword(password);
-					delete password;
+					password = false;
 				} else if (message == "Shared state calculated") {
 					client.sendM1();
 				} else if (message == "Authentification successfull") {
 					signinSuccess(client, fileKey);
 				} else {
 					alert(message);
-					delete password;
-					delete fileKey;
+					password = false;
+					fileKey = false;
 					signinFailure(client);
 				}
 			}, function(client, message){
 				alert(message);
-				delete password;
-				delete fileKey;
+				password = false;
+				fileKey = false;
 				signinFailure(client);
 			});
 		}
@@ -346,6 +347,7 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 						};
 					};
 					sort();
+					viewEditor.init();
 					saveTimeout = window.setTimeout(saveChanges, 1000); //every second
 					callback();
 				});
@@ -358,6 +360,10 @@ require(['libs/domReady', 'data', 'srp', 'sjcl'], function(domReady, Data, SRP){
 						Data.rebuildIndices();
 					}
 				}
+			});
+
+			document.getElementById("addView").addEventListener("click", function(evt){
+				viewEditor.addView();
 			});
 		};
 

@@ -1,4 +1,5 @@
 define(["sjcl"], function(){
+	"use strict";
 	var Data = {};
 
 	var chunks = [];
@@ -629,22 +630,22 @@ define(["sjcl"], function(){
 
 	Data.retrieveData = function(filters, callback){
 		//TODO respect filters
+		function cb(){
+			done++;
+			if(done == index.chunks.length){
+				for (var i = 0; i < chunks.length; i++) {
+					for (var j = 0; j < chunks[i].length; j++) {
+						out[i*getChunkSize(fileVersion)+j] = externalizeData(chunks[i][j]);
+					}
+				}
+				callback(out);
+			}
+		};
 		if(index.chunks.length == 0){
 			callback({});
 		} else {
 			var out = {};
 			var done = 0;
-			function cb(){
-				done++;
-				if(done == index.chunks.length){
-					for (var i = 0; i < chunks.length; i++) {
-						for (var j = 0; j < chunks[i].length; j++) {
-							out[i*getChunkSize(fileVersion)+j] = externalizeData(chunks[i][j]);
-						}
-					}
-					callback(out);
-				}
-			};
 			for (var i = 0; i < index.chunks.length; i++) {
 				if(!chunks[i]){
 					loadChunk(i, index.chunks[i].version || fileVersion, cb);
@@ -653,6 +654,20 @@ define(["sjcl"], function(){
 				}
 			}
 		}
+	}
+
+	Data.estimateNumber = function(filters){
+		var out = 0;
+		for(var i = 0; i<index.chunks.length; i++) {
+			var satisfies = true;
+			for (var j = 0; j < filters.length; j++) {
+				satisfies &= filters[j].checkChunk(index.chunks[i]);
+			}
+			if(satisfies){
+				out += getChunkSize(fileVersion);
+			}
+		}
+		return out;
 	}
 
 	Data.__defineGetter__("maxId", function(){
