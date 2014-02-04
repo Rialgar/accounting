@@ -6,7 +6,7 @@ define(["data", "Emitter"], function(Data, Emitter){
 		name: "All",
 		filters:[]
 	},{
-		name: "Allso All",
+		name: "Also All, but with a long name!",
 		filters:[]
 	}];
 
@@ -22,10 +22,13 @@ define(["data", "Emitter"], function(Data, Emitter){
 		nameSpan.classList.add("viewName");
 		elem.appendChild(nameSpan);
 
+		var badgeCapsule = document.createElement("span");
+		badgeCapsule.classList.add("viewBadgesCapsule");
+
 		var countSpan = document.createElement("span");
 		countSpan.classList.add("badge");
 		countSpan.classList.add("viewCount");
-		elem.appendChild(countSpan);
+		badgeCapsule.appendChild(countSpan);
 
 		var deleteBadge = document.createElement("span");
 		deleteBadge.classList.add("badge");
@@ -34,7 +37,7 @@ define(["data", "Emitter"], function(Data, Emitter){
 		deleteIcon.classList.add("glyphicon");
 		deleteIcon.classList.add("glyphicon-trash");
 		deleteBadge.appendChild(deleteIcon);
-		elem.appendChild(deleteBadge);
+		badgeCapsule.appendChild(deleteBadge);
 
 		var editBadge = document.createElement("span");
 		editBadge.classList.add("badge");
@@ -43,7 +46,9 @@ define(["data", "Emitter"], function(Data, Emitter){
 		editIcon.classList.add("glyphicon");
 		editIcon.classList.add("glyphicon-pencil");
 		editBadge.appendChild(editIcon);
-		elem.appendChild(editBadge);
+		badgeCapsule.appendChild(editBadge);
+
+		elem.appendChild(badgeCapsule);
 
 		document.getElementById("viewList").appendChild(elem);
 
@@ -57,12 +62,12 @@ define(["data", "Emitter"], function(Data, Emitter){
 	var updateDomElement = function(view){
 		view.domElement.firstChild.textContent = view.name;
 		if(typeof view.exactNumber !== "undefined"){
-			view.domElement.firstChild.nextSibling.textContent = view.exactNumber;	
+			view.domElement.firstChild.nextSibling.firstChild.textContent = view.exactNumber;	
 		} else {
 			if(!view.estimatedNumber){
 				view.estimatedNumber = Data.estimateNumber(view.filters);
 			}
-			view.domElement.firstChild.nextSibling.textContent = "<=" + view.estimatedNumber;
+			view.domElement.firstChild.nextSibling.firstChild.textContent = "<=" + view.estimatedNumber;
 		}
 	}
 
