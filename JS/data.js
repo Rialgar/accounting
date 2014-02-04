@@ -659,12 +659,24 @@ define(["sjcl"], function(){
 	Data.estimateNumber = function(filters){
 		var out = 0;
 		for(var i = 0; i<index.chunks.length; i++) {
-			var satisfies = true;
-			for (var j = 0; j < filters.length; j++) {
-				satisfies &= filters[j].checkChunk(index.chunks[i]);
-			}
-			if(satisfies){
-				out += getChunkSize(fileVersion);
+			if(chunks[i]){
+				for(var k = 0; k < chunks[i].length; k++) {
+					var satisfies = true;
+					for (var j = 0; j < filters.length; j++) {
+						satisfies &= filters[j].checkEntry(externalizeData(chunks[i][k]));
+					}
+					if(satisfies){
+						out ++;
+					}	
+				}
+			} else {
+				var satisfies = true;
+				for (var j = 0; j < filters.length; j++) {
+					satisfies &= filters[j].checkChunk(index.chunks[i]);
+				}
+				if(satisfies){
+					out += getChunkSize(fileVersion);
+				}
 			}
 		}
 		return out;
@@ -689,7 +701,7 @@ define(["sjcl"], function(){
 		if(arr.length > 0){
 			saveFiles(arr, function(result){
 				if(!result.error && result.success){
-					for (i in saving) {
+					for (var i in saving) {
 						if(saving.hasOwnProperty(i)) {
 							delete changedChunks[i];
 						}

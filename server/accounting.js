@@ -298,6 +298,7 @@ var handler = function (request, response) {
 
 var port = 5723;
 var host = "127.0.0.1";
+//var host = "rialgar.de";
 
 http.createServer(handler).listen(port, host);
 util.log("Accounting".cyan + " http://"+host+":"+port);

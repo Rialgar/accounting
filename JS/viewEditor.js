@@ -37,7 +37,7 @@ define(["data", "Emitter"], function(Data, Emitter){
 			if(!view.estimatedNumber){
 				view.estimatedNumber = Data.estimateNumber(view.filters);
 			}
-			view.domElement.lastChild.textContent = "<" + view.estimatedNumber;
+			view.domElement.lastChild.textContent = "<=" + view.estimatedNumber;
 		}
 	}
 

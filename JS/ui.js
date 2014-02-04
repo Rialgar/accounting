@@ -263,7 +263,7 @@ require(['libs/domReady', 'data', 'viewEditor', 'srp', 'sjcl'], function(domRead
 		}
 
 		var sortType = localStorage.getItem("sortType") || "id";
-		var descending = localStorage.getItem("descending");
+		var descending = localStorage.getItem("descending") === "true";
 
 		var sortedBy = false;
 
@@ -310,11 +310,13 @@ require(['libs/domReady', 'data', 'viewEditor', 'srp', 'sjcl'], function(domRead
 
 		function sortBy(what){
 				if(sortType == what){
-					ascending = !ascending;
+					descending = !descending;
 				} else {
-					ascending = true;
+					descending = false;
 				}
 				sortType = what;
+				localStorage.setItem("sortType", sortType);
+				localStorage.setItem("descending", descending);
 				sort();
 		}
 
