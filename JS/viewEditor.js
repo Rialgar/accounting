@@ -5,14 +5,18 @@ define(["data", "Emitter"], function(Data, Emitter){
 	var views = [{
 		name: "All",
 		filters:[]
+	},{
+		name: "Allso All",
+		filters:[]
 	}];
 
 	var activeView = false;
 
-	var createDomElement = function(){
+	var createDomElement = function(view){
 		var elem = document.createElement("a");
 		elem.href = "#";
 		elem.classList.add("list-group-item");
+		elem.classList.add("viewItem");
 
 		var nameSpan = document.createElement("span");
 		nameSpan.classList.add("viewName");
@@ -20,34 +24,61 @@ define(["data", "Emitter"], function(Data, Emitter){
 
 		var countSpan = document.createElement("span");
 		countSpan.classList.add("badge");
+		countSpan.classList.add("viewCount");
 		elem.appendChild(countSpan);
 
+		var deleteBadge = document.createElement("span");
+		deleteBadge.classList.add("badge");
+		deleteBadge.classList.add("viewButton");
+		var deleteIcon = document.createElement("span");
+		deleteIcon.classList.add("glyphicon");
+		deleteIcon.classList.add("glyphicon-trash");
+		deleteBadge.appendChild(deleteIcon);
+		elem.appendChild(deleteBadge);
+
+		var editBadge = document.createElement("span");
+		editBadge.classList.add("badge");
+		editBadge.classList.add("viewButton");
+		var editIcon = document.createElement("span");
+		editIcon.classList.add("glyphicon");
+		editIcon.classList.add("glyphicon-pencil");
+		editBadge.appendChild(editIcon);
+		elem.appendChild(editBadge);
+
 		document.getElementById("viewList").appendChild(elem);
+
+		elem.addEventListener("click", function(evt){
+			evt.preventDefault();
+			activateView(view);
+		});
 		return elem;
 	}
 
 	var updateDomElement = function(view){
-		if(!view.domElement){
-			view.domElement = createDomElement();
-		}
 		view.domElement.firstChild.textContent = view.name;
-		if(view.exactNumber){
-			view.domElement.lastChild.textContent = view.exactNumber;	
+		if(typeof view.exactNumber !== "undefined"){
+			view.domElement.firstChild.nextSibling.textContent = view.exactNumber;	
 		} else {
 			if(!view.estimatedNumber){
 				view.estimatedNumber = Data.estimateNumber(view.filters);
 			}
-			view.domElement.lastChild.textContent = "<=" + view.estimatedNumber;
+			view.domElement.firstChild.nextSibling.textContent = "<=" + view.estimatedNumber;
 		}
 	}
 
-	var activateView = function(view){
+	var activateView = function(view, callback){
 		if(activeView){
 			activeView.domElement.classList.remove("active");
 		}
 		activeView = view;
 		activeView.domElement.classList.add("active");
-		viewEditor.emit("activation", activeView);
+		viewEditor.emit("activated", activeView, function(){
+			activeView.exactNumber = Data.estimateNumber(activeView.filters);
+			updateDomElement(activeView);
+			if(typeof callback === "function"){
+				callback();
+			}
+		});
 	}
 
 	var dialog = document.getElementById("viewEditor");
@@ -81,17 +112,23 @@ define(["data", "Emitter"], function(Data, Emitter){
 	}
 
 	viewEditor.addView = function(){
-		//$("#viewEditor").modal("show");
 		showEditDialog();
 	};
 
-	viewEditor.init = function(initViews){
-		if(initViews){
-			views = initViews;
-		}
+	viewEditor.init = function(callback){
+		//load views from data or local storage (do we want to store them online?)
+		//load active view
 		for (var i = 0; i < views.length; i++) {
-			updateDomElement(views[i]);
+			views[i].domElement = createDomElement(views[i]);
 		};
+		activateView(views[0], function(){
+			for (var i = 0; i < views.length; i++) {
+				updateDomElement(views[i]);
+			};
+			if(typeof callback === "function"){
+				callback();
+			};
+		});
 	}
 
 	return viewEditor;

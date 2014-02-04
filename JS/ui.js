@@ -124,6 +124,14 @@ require(['libs/domReady', 'data', 'viewEditor', 'srp', 'sjcl'], function(domRead
 			return tr;
 		}
 
+		function clearTable(){
+			var table = document.getElementById("data");
+			while(table.children.length > 0){
+				table.removeChild(table.firstChild);
+			}
+			createNewRow();
+		}
+
 		var data = {};
 
 		function pad(string, length){
@@ -341,18 +349,21 @@ require(['libs/domReady', 'data', 'viewEditor', 'srp', 'sjcl'], function(domRead
 			ths[3].addEventListener("click", function(){sortBy("category")});
 
 			Data.initialize(srpClient, fileKey, function(){
-				Data.retrieveData([], function(d){
-					data = d;
-					for (var i in data) {
-						if(data.hasOwnProperty(i)){
-							show(i);
+				saveTimeout = window.setTimeout(saveChanges, 1000); //every second
+				viewEditor.register(this, "activated", function(view, callback){
+					Data.retrieveData(view.filters, function(d){
+						clearTable();
+						data = d;
+						for (var i in data) {
+							if(data.hasOwnProperty(i)){
+								show(i);
+							};
 						};
-					};
-					sort();
-					viewEditor.init();
-					saveTimeout = window.setTimeout(saveChanges, 1000); //every second
-					callback();
+						sort();
+						callback();
+					});
 				});
+				viewEditor.init(callback);
 			});
 
 			document.getElementById("rebuild").addEventListener("click", function(evt){
