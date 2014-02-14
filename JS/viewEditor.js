@@ -42,6 +42,9 @@ define(["data", "Emitter"], function(Data, Emitter){
 		var editBadge = document.createElement("span");
 		editBadge.classList.add("badge");
 		editBadge.classList.add("viewButton");
+		editBadge.addEventListener("click", function(evt){
+			showEditDialog(view);
+		});
 		var editIcon = document.createElement("span");
 		editIcon.classList.add("glyphicon");
 		editIcon.classList.add("glyphicon-pencil");
@@ -98,7 +101,7 @@ define(["data", "Emitter"], function(Data, Emitter){
 		closeEditDialog();
 	})
 
-	var showEditDialog = function(){
+	var showEditDialog = function(view){
 		dialog.style.display = "block";
 		document.body.classList.add("modal-open");
 		window.setTimeout(function(){
