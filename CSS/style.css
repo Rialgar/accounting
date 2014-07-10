@@ -117,6 +117,12 @@ body {
   height: 35px;
 }
 
+#thead {
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+}
+
 #thead th:hover{
   background-color: #EEE;
 }
